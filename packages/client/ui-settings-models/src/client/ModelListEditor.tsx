@@ -143,6 +143,20 @@ function capacitySpelling(value: number | undefined): string {
   return value === undefined ? '' : formatCapacity(value)
 }
 
+/** The modality array a row carries: pi-ai's `input`, or the DeepSeek catalog's `inputModalities`; absent means the adapter default. */
+function modalityOf(model: ModelDraft): readonly string[] {
+  for (const field of ['input', 'inputModalities']) {
+    const value = model[field]
+    if (Array.isArray(value)) return value as readonly string[]
+  }
+  return []
+}
+
+/** Whether the row declares image input. */
+function imagesSupported(model: ModelDraft): boolean {
+  return modalityOf(model).includes('image')
+}
+
 /** Adopt a candidate, keeping whatever capacities the provider disclosed. */
 function adopt(candidate: DiscoveredModelView): ModelDraft {
   return {
@@ -187,6 +201,13 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const capacityText = (model: ModelDraft, index: number, field: CapacityField): string =>
     editing.get(bufferKey(index, field)) ?? capacitySpelling(numberOf(model, field))
 
+  /** Write the row's modality list: the field the row already carries wins, else pi-ai's `input`. */
+  const toggleImage = (index: number, supported: boolean): void => {
+    const row = models[index]
+    const field = Array.isArray(row?.['inputModalities']) ? 'inputModalities' : 'input'
+    patch(index, { [field]: supported ? ['text', 'image'] : ['text'] })
+  }
+
   /** Drop one row's entries and shift the rows after it down, in one pass. */
   const reindexOnRemove = (
     current: ReadonlyMap<string, string>,
@@ -210,7 +231,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
     })
   }
 
-  const patch = (index: number, next: Record<string, string | number | undefined>): void => {
+  const patch = (index: number, next: Record<string, string | number | undefined | readonly string[]>): void => {
     onChange(models.map((model, at) => {
       if (at !== index) return model
       // Rebuilt rather than spread over: an emptied optional field has to leave
@@ -427,6 +448,16 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
                     aria-label={`${t('modelMaxTokens')} ${index + 1}`}
                     disabled={disabled}
                     onChange={(event) => { editCapacity(index, 'maxTokens', event.target.value) }}
+                  />
+                </label>
+                <label className={styles['modelToggle']}>
+                  <span className={styles['modelFieldLabel']}>{t('modelImageSupport')}</span>
+                  <input
+                    type="checkbox"
+                    checked={imagesSupported(model)}
+                    aria-label={`${t('modelImageSupport')} ${index + 1}`}
+                    disabled={disabled}
+                    onChange={(event) => { toggleImage(index, event.target.checked) }}
                   />
                 </label>
               </div>

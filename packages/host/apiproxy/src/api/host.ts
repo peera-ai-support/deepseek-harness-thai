@@ -95,4 +95,26 @@ export interface HostApi {
     request: RpcRequest<{ path: string }>,
     signal: AbortSignal,
   ): Promise<RpcResponse<{ opened: true }>>
+
+  /**
+   * One-shot update check against the app's git checkout. Read-only on the
+   * working tree: fetches remote refs, never pulls or rewrites local files.
+   * currentVersion = the repo-root package.json version; latestVersion = the
+   * newest tag reachable on origin/master with the `dsh-v`/`v` prefix
+   * stripped, null when the checkout carries no tags; updateAvailable =
+   * latestVersion exists and differs from currentVersion; repoRoot = the
+   * checkout directory the check ran in. Business failures carry
+   * `git-unavailable` (git not installed), `not-a-git-checkout` (no
+   * pnpm-workspace.yaml/package.json walk-up or no `.git`), or
+   * `git-fetch-failed` (fetch or describe failed, network included).
+   */
+  updateCheck(
+    request: RpcRequest<{}>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<{
+    currentVersion: string
+    latestVersion: string | null
+    updateAvailable: boolean
+    repoRoot: string
+  }>>
 }

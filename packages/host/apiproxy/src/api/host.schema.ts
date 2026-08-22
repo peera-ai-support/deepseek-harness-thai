@@ -73,3 +73,14 @@ export const hostOpenPathRequestSchema = z.object({
 export const hostOpenPathValueSchema = z.object({
   opened: z.literal(true),
 }) satisfies z.ZodType<Wire<ResponseValue<'host.openPath'>>>
+
+/** host.updateCheck request payload (empty object literal). */
+export const hostUpdateCheckRequestSchema = z.object({}) satisfies z.ZodType<Wire<RequestPayload<'host.updateCheck'>>>
+
+/** host.updateCheck response value. */
+export const hostUpdateCheckValueSchema = z.object({
+  currentVersion: z.string(),
+  latestVersion: z.string().nullable(),
+  updateAvailable: z.boolean(),
+  repoRoot: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.updateCheck'>>>

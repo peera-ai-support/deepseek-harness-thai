@@ -23,5 +23,17 @@ export const en: Record<keyof typeof zh, string> = {
   'dialog.commandFailed': 'Could not start the Session export.',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<keyof typeof zh, string> = {
+  'dialog.preparingTitle': 'กำลังส่งออกเซสชัน',
+  'dialog.preparingDescription': 'กำลังเตรียมไฟล์ ZIP ที่มีเซสชันนี้ เซสชันย่อย และไฟล์แนบ',
+  'dialog.successTitle': 'เริ่มดาวน์โหลดเซสชันแล้ว',
+  'dialog.successDescription': 'เบราว์เซอร์กำลังดาวน์โหลดไฟล์ ZIP ของเซสชัน',
+  'dialog.errorTitle': 'การส่งออกเซสชันล้มเหลว',
+  'dialog.close': 'ปิด',
+  'dialog.commandFailed': 'ไม่สามารถเริ่มการส่งออกเซสชันได้',
+}
+
+
 /** Stable locale keys consumed by the shared modal. */
 export type SessionLogDownloadKey = keyof typeof zh

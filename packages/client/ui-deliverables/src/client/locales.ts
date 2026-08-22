@@ -21,5 +21,15 @@ export const en: Record<DeliverablesKey, string> = {
   'produced.showInFolder': 'Show in folder',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<DeliverablesKey, string> = {
+  'produced.label': 'ผลลัพธ์ที่สร้าง',
+  'produced.moreOne': '+ อีก 1 ไฟล์',
+  'produced.more': '+ อีก {count} ไฟล์',
+  'produced.open': 'เปิด {name}',
+  'produced.showInFolder': 'แสดงในโฟลเดอร์',
+}
+
+
 /** Union of this namespace's dictionary keys. */
 export type DeliverablesKey = keyof typeof zh

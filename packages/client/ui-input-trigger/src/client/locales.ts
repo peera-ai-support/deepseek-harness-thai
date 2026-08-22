@@ -24,3 +24,12 @@ export const en = {
   'loading': 'Loading…',
   'suggestions.aria': 'Trigger suggestions',
 } satisfies Record<MenuKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'command': 'คำสั่ง',
+  'skill': 'ทักษะ (Skills)',
+  'subagent': 'เอเจนต์ย่อย',
+  'loading': 'กำลังโหลด…',
+  'suggestions.aria': 'คำแนะนำ Trigger',
+} satisfies Record<MenuKey, string>

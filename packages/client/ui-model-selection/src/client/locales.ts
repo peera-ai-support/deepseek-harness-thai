@@ -52,3 +52,24 @@ export const en = {
   'blocked.composer': 'This model is unavailable — select one to continue',
   'empty.efforts': 'This model provides no reasoning effort levels.',
 } satisfies Record<ModelKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'command.description': 'เลือกโมเดลสำหรับเซสชันนี้',
+  'option.loadError': 'โหลดแคตตาล็อกไม่สำเร็จ: {message}',
+  'trigger.fallback': 'เลือกโมเดล',
+  'trigger.selectAria': 'เลือกโมเดล',
+  'trigger.aria': 'เลือกโมเดล, ปัจจุบัน {model}',
+  'trigger.ariaEffort': 'เลือกโมเดล, ปัจจุบัน {model}, ระดับการใช้เหตุผล {effort}',
+  'menu.aria': 'โมเดลและระดับการใช้เหตุผล',
+  'menu.model': 'โมเดล',
+  'menu.effort': 'ระดับการใช้เหตุผล',
+  'effort.providerDefault': 'ค่าเริ่มต้น',
+  'status.loading': 'กำลังรีเฟรชรายชื่อโมเดล…',
+  'error.action': 'การดำเนินการเกี่ยวกับโมเดลล้มเหลว: {message}',
+  'action.reload': 'โหลดใหม่',
+  'warning.groupLoad': 'โหลด {name} ไม่สำเร็จ: {message}',
+  'empty.models': 'ไม่มีโมเดลที่พร้อมใช้งาน',
+  'blocked.composer': 'โมเดลนี้ไม่พร้อมใช้งาน — กรุณาเลือกโมเดลเพื่อดำเนินการต่อ',
+  'empty.efforts': 'โมเดลนี้ไม่มีระดับการใช้เหตุผลให้เลือก',
+} satisfies Record<ModelKey, string>

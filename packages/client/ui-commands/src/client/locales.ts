@@ -26,3 +26,15 @@ export const en = {
   'listbox.aria': '/{command} matches',
   'notice.imagesUnsupported': '/{command} does not accept image attachments; remove them first',
 } satisfies Record<CommandKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'search.placeholder': 'ค้นหา…',
+  'search.aria': 'กรองตัวเลือก',
+  'status.loading': 'กำลังโหลดตัวเลือก…',
+  'status.applying': 'กำลังนำไปใช้…',
+  'status.empty': 'ไม่มีตัวเลือก',
+  'overlay.aria': 'ตัวเลือก /{command}',
+  'listbox.aria': 'รายการที่ตรงกับ /{command}',
+  'notice.imagesUnsupported': '/{command} ไม่รับไฟล์แนบรูปภาพ กรุณาลบรูปออกก่อน',
+} satisfies Record<CommandKey, string>

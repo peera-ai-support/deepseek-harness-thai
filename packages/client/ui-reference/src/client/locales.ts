@@ -34,3 +34,13 @@ export const en = {
   'candidate.session': 'Session',
   'candidate.noCwd': '(no cwd)',
 } satisfies Record<ReferenceKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'section.files': 'ไฟล์และโฟลเดอร์',
+  'section.sessions': 'บทสนทนาเซสชัน',
+  'candidate.file': 'ไฟล์',
+  'candidate.folder': 'โฟลเดอร์',
+  'candidate.session': 'เซสชัน',
+  'candidate.noCwd': '(ไม่มีไดเรกทอรีทำงาน)',
+} satisfies Record<ReferenceKey, string>

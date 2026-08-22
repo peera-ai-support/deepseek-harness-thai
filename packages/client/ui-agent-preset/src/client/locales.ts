@@ -141,6 +141,66 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   deleting: '正在删除…',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<AgentPresetSettingsKey, string> = {
+  title: 'โปรไฟล์เอเจนต์',
+  description: 'มีผลกับเซสชันที่คุณสร้างใหม่นับจากนี้ เซสชันที่กำลังทำงานอยู่จะใช้โปรไฟล์เดิมที่เริ่มต้นไว้',
+  loading: 'กำลังโหลดโปรไฟล์…',
+  error: 'ไม่สามารถโหลดโปรไฟล์เอเจนต์ได้',
+  userTrust: 'กำหนดเอง',
+  seatHint: 'โปรไฟล์เอเจนต์สำหรับเซสชันที่คุณกำลังจะเริ่ม',
+  headerHint: 'โปรไฟล์เอเจนต์ที่เซสชันนี้กำลังใช้งาน ซึ่งถูกกำหนดตั้งแต่เริ่มเซสชัน',
+  nav: 'โปรไฟล์เอเจนต์',
+  sectionIntro: 'โปรไฟล์คือการประกอบปลั๊กอินที่เอเจนต์ในเซสชันนั้นๆ ใช้งาน — ประกอบด้วยเครื่องมือ ข้อความพรอมต์ และความสามารถต่างๆ '
+    + 'คุณสามารถคัดลอกโปรไฟล์ที่มีอยู่เพื่อนำมาปรับแต่งเอง หรือให้เอเจนต์ช่วยสร้างในโหมดผู้สร้าง (Creator mode)',
+  builtIn: 'ในตัวระบบ',
+  setDefault: 'ตั้งเป็นค่าเริ่มต้น',
+  view: 'ดู',
+  presetStandardName: 'โหมดมาตรฐาน (Standard)',
+  presetStandardDescription: 'เอเจนต์เขียนโค้ดที่สมบูรณ์แบบ รองรับการแก้ไขไฟล์, Shell, การค้นหาไฟล์และเว็บ, Skills, แผนงาน, เป้าหมาย, เอเจนต์ย่อย และเวิร์กโฟลว์',
+  presetCodeName: 'โหมดโค้ด (PTC / Code mode)',
+  presetCodeDescription: 'ความสามารถครบถ้วนเหมือนโหมดมาตรฐาน พร้อมเครื่องมือผ่าน Code Mode SDK ให้โมเดลรวมการทำงานหลายขั้นตอนไว้ในโปรแกรม TypeScript เดียว',
+  presetMinimalName: 'โหมดมินิมอล (Minimal)',
+  presetMinimalDescription: 'เอเจนต์เขียนโค้ดแบบกระชับ พร้อมเครื่องมือ 2 ตัว: bash แบบคงอยู่ และ str_replace_editor',
+  presetCordisName: 'โหมดผู้สร้าง (Creator mode)',
+  presetCordisDescription: 'ออกแบบมาเพื่อสร้างโปรไฟล์เอเจนต์แบบกำหนดเอง มีความสามารถครบตามโหมดมาตรฐาน พร้อมการตรวจสอบ Runtime, ทดลองปลั๊กอิน และคู่มือสร้างโปรไฟล์',
+  duplicate: 'คัดลอก',
+  duplicateUnavailable: 'การติดตั้งนี้ไม่มีโฟลเดอร์โปรไฟล์ที่สามารถเขียนได้',
+  delete: 'ลบ',
+  presetId: 'รหัสประจำตัว (ID)',
+  presetIdPlaceholder: 'my-agent',
+  displayName: 'ชื่อ',
+  displayNamePlaceholder: 'แสดงในเมนูเลือก หากเว้นว่างจะใช้รหัสประจำตัว',
+  inUse: 'กำลังใช้งาน',
+  builtInGroup: 'ในตัวระบบ',
+  customGroup: 'กำหนดเอง',
+  noDescription: 'ไม่มีคำอธิบาย',
+  brokenBadge: 'โหลดไม่สำเร็จ',
+  brokenNoCopy: 'โปรไฟล์ที่โหลดไม่สำเร็จจะไม่สามารถคัดลอกได้',
+  copyOf: 'คัดลอกจาก',
+  composition: 'การประกอบ (agent.cordis.yml)',
+  cancel: 'ยกเลิก',
+  close: 'ปิด',
+  retry: 'ลองใหม่',
+  copyTitle: 'คัดลอกโปรไฟล์',
+  copyIntro: 'โปรไฟล์ทั้งหมดจะถูกคัดลอกลงในเครื่องนี้ รหัสประจำตัวจะกลายเป็นชื่อโฟลเดอร์และไม่สามารถเปลี่ยนภายหลังได้ '
+    + 'ส่วนอื่นๆ สามารถแก้ไขได้ในไฟล์ของโปรไฟล์เอง',
+  create: 'สร้าง',
+  creating: 'กำลังสร้าง…',
+  creatorDraft: 'ร่างโปรไฟล์แบบกำหนดเองด้วยโหมดผู้สร้าง (Creator mode)',
+  openLocation: 'เปิดโฟลเดอร์',
+  showLocation: 'แสดงที่ตั้ง',
+  revealedPathLabel: 'ไฟล์ของโปรไฟล์:',
+  idRequired: 'กรุณาระบุรหัสประจำตัวของโปรไฟล์',
+  idInvalid: 'ใช้ได้เฉพาะตัวอักษรพิมพ์เล็ก ตัวเลข และเครื่องหมายขีดคั่น (-) โดยต้องขึ้นต้นด้วยตัวอักษรหรือตัวเลข',
+  idTaken: 'มีโปรไฟล์ที่ใช้รหัสประจำตัวนี้อยู่แล้ว',
+  deleteTitle: 'ลบโปรไฟล์นี้หรือไม่?',
+  deleteDescription: 'โฟลเดอร์โปรไฟล์จะถูกลบ เซสชันที่กำลังทำงานอยู่จะยังคงทำงานต่อได้ แต่เซสชันใหม่จะไม่สามารถเลือกโปรไฟล์นี้ได้อีก',
+  deleteConfirm: 'ลบ',
+  deleting: 'กำลังลบ…',
+}
+
+
 /** Preset roster fields needed to resolve Web display copy. */
 export interface PresetDisplaySource {
   /** Stable preset id. */

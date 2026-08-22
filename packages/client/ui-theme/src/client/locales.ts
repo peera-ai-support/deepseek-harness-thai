@@ -18,3 +18,11 @@ export const en = {
   'appearance.dark': 'Dark',
   'appearance.system': 'System',
 } satisfies Record<ThemeKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'appearance.title': 'ธีมและการแสดงผล',
+  'appearance.light': 'สว่าง',
+  'appearance.dark': 'มืด',
+  'appearance.system': 'ตามระบบ',
+} satisfies Record<ThemeKey, string>

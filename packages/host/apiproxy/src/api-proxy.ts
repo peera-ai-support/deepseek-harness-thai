@@ -4,12 +4,17 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { execFile } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
+import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
@@ -575,6 +580,7 @@ function directoryError(error: unknown): RpcError {
 
 /** Resolved Agent model and project-directory defaults consumed by the API implementation. */
 export interface ApiProxyDefaults {
+
   /**
    * The model selection a session starts from when its own log names none. Read on
    * every access rather than captured, so a default saved during this process
@@ -1044,6 +1050,45 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
  * @param defaults - host routing and project-directory defaults.
  * @returns the ApiProxy implementation.
  */
+/** promisified execFile: stdout/stderr strings, options (cwd/env/timeout/signal) applied per call. */
+const execFileAsync = promisify(execFile)
+
+/**
+ * The app checkout root: the first ancestor of `from` holding both
+ * pnpm-workspace.yaml and package.json. `from` defaults to this module's
+ * directory (this package's src or lib output, always inside the checkout),
+ * so the answer is independent of the caller's cwd.
+ * @returns the checkout root, or undefined when the installation is not a checkout.
+ */
+export function findAppRoot(from = dirname(fileURLToPath(import.meta.url))): string | undefined {
+  for (let dir = from; ; ) {
+    if (existsSync(join(dir, 'pnpm-workspace.yaml')) && existsSync(join(dir, 'package.json'))) {
+      return dir
+    }
+    const parent = dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
+  }
+}
+
+/** The repo-root package.json version, or 'unknown' when unreadable. */
+function readAppVersion(appRoot: string): string {
+  try {
+    const manifest = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8')) as { version?: unknown }
+    return typeof manifest.version === 'string' && manifest.version !== '' ? manifest.version : 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
+/**
+ * Strip the release tag prefix (`dsh-v`, `v`) so tags compare against
+ * package.json versions.
+ */
+export function normalizeVersionTag(tag: string): string {
+  return tag.replace(/^dsh-v/i, '').replace(/^v/i, '')
+}
+
 export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiProxy {
   const sessionExportCompressionLevel = defaults.sessionExportCompressionLevel
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL
@@ -2822,10 +2867,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
 
     host: {
       describe(request) {
-        // TODO: version should read apps/cli's package.json; placeholder for now.
+        const repoRoot = findAppRoot()
         const selection = defaults.defaultModelSelection()
         return Promise.resolve(ok(request, {
-          version: '0.0.1',
+          version: repoRoot === undefined ? 'unknown' : readAppVersion(repoRoot),
           // Same source as session.create's fallback: the UI's default project
           // must match where an unspecified-cwd session actually lands.
           cwd: defaults.cwd,
@@ -2837,6 +2882,55 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           home: homedir(),
           canOpenPath: canOpenPaths(),
         }))
+      },
+
+      async updateCheck(request, signal) {
+        const repoRoot = findAppRoot()
+        if (repoRoot === undefined) {
+          return err(request, {
+            code: 'not-a-git-checkout',
+            message: 'no pnpm-workspace.yaml/package.json found walking up from this installation',
+            details: {},
+          })
+        }
+        if (!existsSync(join(repoRoot, '.git'))) {
+          return err(request, {
+            code: 'not-a-git-checkout',
+            message: `${repoRoot} has no .git directory`,
+            details: { repoRoot },
+          })
+        }
+        const runGit = (args: string[]): Promise<string> => execFileAsync(
+          'git', args,
+          { cwd: repoRoot, env: scrubbedParentEnv(), timeout: 60_000, windowsHide: true, signal },
+        ).then(result => result.stdout.trim())
+        try {
+          // Read-only on the working tree: refs only, never a pull.
+          await runGit(['fetch', '--tags', '--quiet'])
+        } catch (error) {
+          const code = (error as NodeJS.ErrnoException).code
+          if (code === 'ENOENT' || code === 'ERR_ENOENT') {
+            return err(request, { code: 'git-unavailable', message: 'git was not found on the host PATH', details: {} })
+          }
+          return err(request, {
+            code: 'git-fetch-failed',
+            message: `git fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+        const currentVersion = readAppVersion(repoRoot)
+        let latestVersion: string | null = null
+        try {
+          latestVersion = normalizeVersionTag(await runGit(['describe', '--tags', '--abbrev=0', 'origin/master']))
+        } catch {
+          // No tag reachable on origin/master (fresh repo) — report, not an error.
+        }
+        return ok(request, {
+          currentVersion,
+          latestVersion,
+          updateAvailable: latestVersion !== null && latestVersion !== currentVersion,
+          repoRoot,
+        })
       },
 
       async pickDirectory(request, signal) {

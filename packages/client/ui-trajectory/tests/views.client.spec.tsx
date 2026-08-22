@@ -33,6 +33,7 @@ import { apply as localeApply, inject as localeInject } from '@deepseek-ai/dsh-c
 import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { zh, type TrajectoryKey } from '../src/client/locales.ts'
+const specT = (key: string, params?: Record<string, unknown>): string => { const v = zh[key as TrajectoryKey]; return v === undefined ? key : params === undefined ? v : v.replace(/\{(\w+)\}/g, (_, n: string) => { const v = params[n]; return typeof v === 'string' || typeof v === 'number' ? String(v) : '' }) }
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-trajectory/client'
 import { apply as nodeApply } from '@deepseek-ai/dsh-client-ui-trajectory'
 import type { TrajectoryTurnModel } from '../src/client/layout.ts'
@@ -369,7 +370,7 @@ describe('tab switching in ConversationRoot', () => {
     expect(view.container.querySelectorAll('tr[data-turn-start="true"]')).toHaveLength(2)
     expect(screen.queryByRole('columnheader')).toBeNull()
     expect(screen.getByRole('toolbar', { name: '轨迹工具栏' })).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Trajectory timeline' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: '轨迹时间线' })).toBeTruthy()
     expect(view.container.querySelector('[data-conversation-composer-overlay]')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Collapse turns' }))
     expect(view.container.querySelector('[data-collapsed-summary="turn"]')).toBeTruthy()
@@ -398,13 +399,13 @@ describe('tab switching in ConversationRoot', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Trajectory' }))
 
     fireEvent.keyDown(screen.getByRole('row', { name: /TOOL/ }), { key: 'Enter' })
-    expect(screen.getByRole('complementary', { name: 'Event details' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: '事件详情' })).toBeTruthy()
     expect(screen.getByText('Turn 1 · Step 1')).toBeTruthy()
     expect(screen.getByText('Completed')).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Result' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close details' }))
-    expect(screen.queryByRole('complementary', { name: 'Event details' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '关闭详情' }))
+    expect(screen.queryByRole('complementary', { name: '事件详情' })).toBeNull()
   })
 
   it('labels a standalone compaction as between-turn work in the ledger and inspector', async () => {
@@ -510,7 +511,7 @@ describe('tab switching in ConversationRoot', () => {
     const b = await bench()
     mount(b.slots)
     fireEvent.click(screen.getByRole('tab', { name: 'Trajectory' }))
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
       toJSON: () => ({}),
@@ -542,7 +543,7 @@ describe('tab switching in ConversationRoot', () => {
     const b = await bench()
     const view = mount(b.slots)
     fireEvent.click(screen.getByRole('tab', { name: 'Trajectory' }))
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
       toJSON: () => ({}),
@@ -573,7 +574,7 @@ describe('tab switching in ConversationRoot', () => {
     )
     expect(selectedRow?.getAttribute('aria-selected')).toBe('true')
     expect(view.container.querySelector('tr[data-timeline-focus]')).toBeNull()
-    expect(screen.getByRole('complementary', { name: 'Event details' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: '事件详情' })).toBeTruthy()
   })
 
   it('empty window keeps the toolbar and reports no timing data', async () => {
@@ -647,6 +648,7 @@ describe('timeline projection', () => {
           mode="duration"
           range={null}
           onRangeChange={vi.fn()}
+          t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
         />,
       )
       const span = view.container.querySelector<HTMLElement>(
@@ -661,9 +663,9 @@ describe('timeline projection', () => {
       expect(view.container.querySelector('[role="tooltip"]')).toBeNull()
       act(() => { vi.advanceTimersByTime(1) })
       const tooltip = view.container.querySelector<HTMLElement>('[role="tooltip"]')
-      expect(tooltip?.textContent).toContain('Total 2,000 ms')
+      expect(tooltip?.textContent).toContain('总计 2,000 ms')
       expect(tooltip?.textContent).toContain('TTFT 500 ms')
-      expect(tooltip?.textContent).toContain('Decoding 1,500 ms')
+      expect(tooltip?.textContent).toContain('解码 1,500 ms')
     } finally {
       vi.useRealTimers()
     }
@@ -679,12 +681,13 @@ describe('timeline projection', () => {
         hasEarlierRecords
         onLoadEarlier={onLoadEarlier}
         onRangeChange={vi.fn()}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
 
     const boundary = screen.getByLabelText('Load earlier history')
     expect(boundary.getAttribute('data-earlier-history')).not.toBeNull()
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     fireEvent.pointerMove(plot, { clientX: 50, pointerId: 1 })
     expect(view.container.querySelector('[data-timeline-hover-line]')).toBeTruthy()
     fireEvent.pointerEnter(boundary)
@@ -702,6 +705,7 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={vi.fn()}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
     expect(screen.queryByLabelText('Load earlier history')).toBeNull()
@@ -715,9 +719,10 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={vi.fn()}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 44, y: 0, left: 44, top: 0, right: 144, bottom: 50, width: 100, height: 50,
       toJSON: () => ({}),
@@ -737,6 +742,7 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={vi.fn()}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
     const span = view.container.querySelector<HTMLElement>('[data-timeline-span]')
@@ -764,6 +770,7 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={vi.fn()}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
 
@@ -782,9 +789,10 @@ describe('timeline projection', () => {
         range={{ start: 2, end: 4 }}
         hasEarlierRecords
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     expect(screen.getByLabelText('Load earlier history')).toBeTruthy()
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
@@ -813,9 +821,10 @@ describe('timeline projection', () => {
         mode="sequence"
         range={{ start: 2, end: 4 }}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
 
     fireEvent.pointerDown(plot, { button: 2, clientX: 50, pointerId: 1 })
     expect(fireEvent.contextMenu(plot)).toBe(false)
@@ -832,9 +841,10 @@ describe('timeline projection', () => {
         mode="sequence"
         range={{ start: 2, end: 4 }}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
       toJSON: () => ({}),
@@ -862,9 +872,10 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
       toJSON: () => ({}),
@@ -878,6 +889,7 @@ describe('timeline projection', () => {
         range={null}
         selectedIndex={1}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
     await vi.waitFor(() => {
@@ -894,6 +906,7 @@ describe('timeline projection', () => {
         range={null}
         selectedIndex={8}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
     await vi.waitFor(() => {
@@ -912,9 +925,10 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={onRangeChange}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
-    const plot = screen.getByLabelText('Timeline overview; drag horizontally to focus events')
+    const plot = screen.getByLabelText('时间线概览；水平拖动以聚焦事件')
     vi.spyOn(plot, 'getBoundingClientRect').mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 72, width: 100, height: 72,
       toJSON: () => ({}),
@@ -988,6 +1002,7 @@ describe('timeline projection', () => {
         mode="sequence"
         range={null}
         onRangeChange={() => {}}
+        t={(key: string, params?: Record<string, unknown>) => specT(key, params)}
       />,
     )
 

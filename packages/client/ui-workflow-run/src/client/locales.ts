@@ -47,5 +47,28 @@ export const en: Record<WorkflowRunKey, string> = {
   'status.interrupted': 'Interrupted',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<WorkflowRunKey, string> = {
+  'run.title': '{name}',
+  'run.members.one': '{count} สมาชิก',
+  'run.members.other': '{count} สมาชิก',
+  'run.empty': 'ไม่มีสมาชิกที่เริ่มทำงาน',
+  'phase.unassigned': 'ไม่มีเฟส',
+  'phase.empty': 'ชื่อเฟสว่าง',
+  'statusCount.running': 'กำลังทำงาน {count}',
+  'statusCount.completed': 'เสร็จสิ้น {count}',
+  'statusCount.failed': 'ล้มเหลว {count}',
+  'statusCount.cancelled': 'ยกเลิกแล้ว {count}',
+  'statusCount.interrupted': 'ถูกขัดจังหวะ {count}',
+  'member.empty': 'ไม่มีชื่อสมาชิก',
+  'member.open': 'เปิด {name}',
+  'status.running': 'กำลังทำงาน',
+  'status.completed': 'เสร็จสิ้น',
+  'status.failed': 'ล้มเหลว',
+  'status.cancelled': 'ยกเลิกแล้ว',
+  'status.interrupted': 'ถูกขัดจังหวะ',
+}
+
+
 /** Union of this namespace's dictionary keys. */
 export type WorkflowRunKey = keyof typeof zh

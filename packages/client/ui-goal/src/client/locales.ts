@@ -32,3 +32,18 @@ export const en = {
   'action.edit': 'Edit goal',
   'action.clear': 'Clear goal',
 } satisfies Record<GoalKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'phase.active': 'เป้าหมายที่กำลังดำเนินการ',
+  'phase.paused': 'เป้าหมายที่หยุดชั่วคราว',
+  'phase.blocked': 'เป้าหมายที่ติดขัด',
+  'objective.aria': 'รายละเอียดเป้าหมาย',
+  'commandInput.aria': 'ช่องป้อนคำสั่ง',
+  'action.save': 'บันทึกเป้าหมาย',
+  'action.cancel': 'ยกเลิกการแก้ไข',
+  'action.pause': 'หยุดเป้าหมายชั่วคราว',
+  'action.resume': 'ทำเป้าหมายต่อ',
+  'action.edit': 'แก้ไขเป้าหมาย',
+  'action.clear': 'ล้างเป้าหมาย',
+} satisfies Record<GoalKey, string>

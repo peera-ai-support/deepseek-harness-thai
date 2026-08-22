@@ -518,6 +518,17 @@
   line-height: 18px;
 }
 
+.modelToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.modelToggle input[type='checkbox'] {
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
 .modelEmpty {
   padding: 12px;
   border: 1px dashed var(--dsw-alias-border-l3);

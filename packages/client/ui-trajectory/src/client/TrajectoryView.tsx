@@ -475,6 +475,7 @@ export function TrajectoryView({
         onRangeChange={handleTimelineRangeChange}
         onRecordSelect={handleTimelineRecordSelect}
         onRecordFocus={handleTimelineRecordFocus}
+        t={t}
       />
       <div className={css.ledger}>
         <TrajectoryTable
@@ -499,6 +500,7 @@ export function TrajectoryView({
           onToggleAssistant={toggleAssistant}
           inspectCallId={inspect?.callId ?? null}
           onInspectApplied={onInspectDone}
+          t={t}
         />
       </div>
     </div>

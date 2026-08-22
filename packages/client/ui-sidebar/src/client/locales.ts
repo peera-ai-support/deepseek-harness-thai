@@ -18,3 +18,11 @@ export const en = {
   'toggle.open': 'Open sidebar',
   'toggle.collapse': 'Collapse sidebar',
 } satisfies Record<SidebarKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'session.new': 'เซสชันใหม่',
+  'session.new.label': 'สร้างเซสชันใหม่',
+  'toggle.open': 'เปิดแถบข้าง',
+  'toggle.collapse': 'ย่อแถบข้าง',
+} satisfies Record<SidebarKey, string>

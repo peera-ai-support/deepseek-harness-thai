@@ -53,6 +53,19 @@ const SIGDN_FILESYSPATH = 0x80058000 | 0
  */
 const DPI_AWARENESS_CONTEXTS = [-4, -3, -2]
 const WM_CLOSE = 0x10
+/** Off-screen owner so `IFileOpenDialog::Show` has a window that can take foreground. */
+const WS_POPUP = 0x80000000
+const WS_VISIBLE = 0x10000000
+const WS_EX_TOOLWINDOW = 0x00000080
+const WS_EX_TOPMOST = 0x00000008
+const SW_SHOW = 5
+/** `ASFW_ANY`: allow any process to take the foreground (the click landed in the GUI process). */
+const ASFW_ANY = 0xffffffff
+
+/** A Win32 handle the COM `Show` owner parameter treats as "no window". */
+function isNullHandle(hwnd: unknown): boolean {
+  return hwnd === null || hwnd === undefined || hwnd === 0
+}
 
 /** IFileOpenDialog vtable slots (IUnknown 0-2, IModalWindow 3, IFileDialog 4+). */
 const SLOT_RELEASE = 2
@@ -107,6 +120,53 @@ export async function loadWin32DialogBindings(): Promise<Win32DialogBindings> {
   const protoGetDisplayName = koffi.proto('int32 __stdcall DshItemGetDisplayName(void *self, int32 form, _Out_ void **name)')
   const protoRelease = koffi.proto('uint32 __stdcall DshComRelease(void *self)')
 
+  const createWindowExW = user32.func('__stdcall', 'CreateWindowExW', 'void *', [
+    'uint32', 'str16', 'str16', 'uint32', 'int32', 'int32', 'int32', 'int32',
+    'void *', 'void *', 'void *', 'void *',
+  ])
+  const destroyWindow = user32.func('__stdcall', 'DestroyWindow', 'int', ['void *'])
+  const getForegroundWindow = user32.func('__stdcall', 'GetForegroundWindow', 'void *', [])
+  const getWindowThreadProcessId = user32.func('__stdcall', 'GetWindowThreadProcessId', 'uint32', ['void *', 'void *'])
+  const attachThreadInput = user32.func('__stdcall', 'AttachThreadInput', 'int', ['uint32', 'uint32', 'int'])
+  const setForegroundWindow = user32.func('__stdcall', 'SetForegroundWindow', 'int', ['void *'])
+  const allowSetForegroundWindow = user32.func('__stdcall', 'AllowSetForegroundWindow', 'int', ['uint32'])
+  const showWindow = user32.func('__stdcall', 'ShowWindow', 'int', ['void *', 'int'])
+  const bringWindowToTop = user32.func('__stdcall', 'BringWindowToTop', 'int', ['void *'])
+
+  /**
+   * Steal foreground from the GUI process that received the click (browser or
+   * WebView2). Without this, `Show` from a hidden Node child stays behind that
+   * window and the Add-workspace control looks dead.
+   */
+  const activateOwner = (hwnd: unknown): void => {
+    showWindow(hwnd, SW_SHOW)
+    allowSetForegroundWindow(ASFW_ANY)
+    const foreground = getForegroundWindow()
+    const ourTid = getCurrentThreadId() as number
+    if (!isNullHandle(foreground)) {
+      const fgTid = getWindowThreadProcessId(foreground, null) as number
+      if (fgTid !== 0 && fgTid !== ourTid) {
+        attachThreadInput(ourTid, fgTid, 1)
+        setForegroundWindow(hwnd)
+        bringWindowToTop(hwnd)
+        attachThreadInput(ourTid, fgTid, 0)
+        return
+      }
+    }
+    setForegroundWindow(hwnd)
+    bringWindowToTop(hwnd)
+  }
+
+  /** Create the off-screen owner, or `null` when window creation is refused. */
+  const createOwnerWindow = (): unknown => createWindowExW(
+    WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+    'STATIC',
+    'Select Workspace Directory',
+    WS_POPUP | WS_VISIBLE,
+    -32000, -32000, 1, 1,
+    null, null, null, null,
+  )
+
   /** Bind vtable slot `slot` of COM object `self` to a caller through `proto`. */
   const method = (self: unknown, slot: number, proto: unknown): (...args: unknown[]) => number => {
     const vtable = koffi.decode(self, 'void *')
@@ -146,7 +206,21 @@ export async function loadWin32DialogBindings(): Promise<Win32DialogBindings> {
       return {
         setOptions: options => method(dialog, SLOT_SET_OPTIONS, protoSetOptions)(options),
         setTitle: title => method(dialog, SLOT_SET_TITLE, protoSetTitle)(title),
-        show: () => method(dialog, SLOT_SHOW, protoShow)(null),
+        show: () => {
+          // Steal foreground onto this thread, then drop the dummy window
+          // before `Show`: an owner HWND still alive during the modal call
+          // would also receive the abort path's `WM_CLOSE` and tear the
+          // child down before the dialog reports.
+          const owner = createOwnerWindow()
+          if (!isNullHandle(owner)) {
+            try {
+              activateOwner(owner)
+            } finally {
+              destroyWindow(owner)
+            }
+          }
+          return method(dialog, SLOT_SHOW, protoShow)(null)
+        },
         resultPath: () => {
           const itemOut: unknown[] = [null]
           const gotItem = method(dialog, SLOT_GET_RESULT, protoGetResult)(itemOut)

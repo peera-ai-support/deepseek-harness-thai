@@ -26,6 +26,8 @@ import {
 import type { TrajectoryVirtualRow } from './trajectory-virtual-rows.ts'
 import type { TrajectoryTurnModel } from './layout.ts'
 import { trajectoryPreviewText } from './trajectory-preview.ts'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { NS } from './locales.ts'
 import css from './TrajectoryTable.module.css'
 
 const BOTTOM_FOLLOW_THRESHOLD_PX = 2
@@ -387,6 +389,8 @@ export interface TrajectoryTableProps {
   inspectCallId?: string | null
   /** Acknowledge a consumed (or unresolvable) inspect request. */
   onInspectApplied?: (() => void) | undefined
+  /** Translate a trajectory dictionary key. */
+  t: TranslateNS<typeof NS>
 }
 
 /** Request-inspector fields shared by ordinary generation and compaction. */
@@ -1055,9 +1059,11 @@ function MarkdownFragment({
 function SourceBlocks({
   blocks,
   onOpenCall,
+  t,
 }: {
   blocks: readonly TrajectorySourceBlock[]
   onOpenCall: (callId: string) => void
+  t: TranslateNS<typeof NS>
 }) {
   return (
     <div className={css.sourceBlocks}>
@@ -1068,8 +1074,8 @@ function SourceBlocks({
               <button
                 type="button"
                 className={css.sourceBlockJumpTarget}
-                aria-label={`Open Block #${index + 1} tool call summary`}
-                title="Open tool call summary"
+                aria-label={t('details.openCallAria', { index: index + 1 })}
+                title={t('details.openCall')}
                 onClick={() => {
                   if (block.callId !== undefined) onOpenCall(block.callId)
                 }}
@@ -1088,7 +1094,7 @@ function SourceBlocks({
               </div>
             )}
           {block.imageSrc !== undefined
-            ? <PanelImage block={block} />
+            ? <PanelImage block={block} t={t} />
             : <pre className={css.sourceBlockContent}>{block.content}</pre>}
         </section>
       ))}
@@ -1099,9 +1105,11 @@ function SourceBlocks({
 function PanelImage({
   block,
   preview = false,
+  t,
 }: {
   block: TrajectorySourceBlock
   preview?: boolean
+  t: TranslateNS<typeof NS>
 }) {
   if (block.imageSrc === undefined) return null
   return (
@@ -1110,7 +1118,7 @@ function PanelImage({
       href={block.imageSrc}
       target="_blank"
       rel="noopener noreferrer"
-      title="Open image"
+      title={t('details.openImage')}
     >
       <img
         className={css.panelImage}
@@ -1124,15 +1132,17 @@ function PanelImage({
 function MessageImages({
   blocks,
   preview,
+  t,
 }: {
   blocks: readonly TrajectorySourceBlock[] | undefined
   preview: boolean
+  t: TranslateNS<typeof NS>
 }) {
   const images = blocks?.filter(block => block.imageSrc !== undefined) ?? []
   if (images.length === 0) return null
   return (
     <div className={preview ? `${css.messageImages} ${css.messageImagesPreview}` : css.messageImages}>
-      {images.map((block, index) => <PanelImage block={block} preview={preview} key={index} />)}
+      {images.map((block, index) => <PanelImage block={block} preview={preview} key={index} t={t} />)}
     </div>
   )
 }
@@ -1141,10 +1151,12 @@ function AssistantToolCalls({
   blocks,
   preview,
   onOpenCall,
+  t,
 }: {
   blocks: readonly TrajectorySourceBlock[] | undefined
   preview: boolean
   onOpenCall: (callId: string) => void
+  t: TranslateNS<typeof NS>
 }) {
   const calls = blocks?.filter(block => block.type === 'tool-call') ?? []
   if (calls.length === 0) return null
@@ -1158,7 +1170,7 @@ function AssistantToolCalls({
           <button
             type="button"
             className={css.assistantToolCallButton}
-            title="Open tool call summary"
+            title={t('details.openCall')}
             onClick={() => {
               if (call.callId !== undefined) onOpenCall(call.callId)
             }}
@@ -1294,9 +1306,11 @@ function PromptDiffSection({
 function SystemPromptDiff({
   before,
   after,
+  t,
 }: {
   before: ConversationPromptSnapshot
   after: ConversationPromptSnapshot
+  t: TranslateNS<typeof NS>
 }) {
   const toolsBefore = JSON.stringify(before.tools, null, 2)
   const toolsAfter = JSON.stringify(after.tools, null, 2)
@@ -1304,14 +1318,14 @@ function SystemPromptDiff({
     <div className={css.promptDiffSections}>
       {before.system !== after.system && (
         <PromptDiffSection
-          title="System Prompt"
+          title={t('details.systemPrompt')}
           before={before.system}
           after={after.system}
         />
       )}
       {toolsBefore !== toolsAfter && (
         <PromptDiffSection
-          title="Tools"
+          title={t('details.tools')}
           before={toolsBefore}
           after={toolsAfter}
         />
@@ -1324,10 +1338,12 @@ function ToolOutputBlocks({
   blocks,
   error,
   preview,
+  t,
 }: {
   blocks: readonly TrajectorySourceBlock[]
   error: boolean
   preview: boolean
+  t: TranslateNS<typeof NS>
 }) {
   return (
     <div className={[
@@ -1338,7 +1354,7 @@ function ToolOutputBlocks({
     >
       {blocks.map((block, index) => (
         block.imageSrc !== undefined
-          ? <PanelImage block={block} preview={preview} key={index} />
+          ? <PanelImage block={block} preview={preview} key={index} t={t} />
           : block.content !== ''
             ? <pre className={css.resultBlockText} key={index}>{block.content}</pre>
             : null
@@ -1354,6 +1370,7 @@ function MarkdownRecordContent({
   thinkingExpanded,
   onThinkingExpandedChange,
   onOpenCall,
+  t,
 }: {
   record: TableRecord
   rendered: boolean
@@ -1361,9 +1378,10 @@ function MarkdownRecordContent({
   thinkingExpanded: boolean
   onThinkingExpandedChange: (expanded: boolean) => void
   onOpenCall: (callId: string) => void
+  t: TranslateNS<typeof NS>
 }) {
   if (!rendered && record.cell.sourceBlocks && record.cell.sourceBlocks.length > 0) {
-    return <SourceBlocks blocks={record.cell.sourceBlocks} onOpenCall={onOpenCall} />
+    return <SourceBlocks blocks={record.cell.sourceBlocks} onOpenCall={onOpenCall} t={t} />
   }
   if (record.cell.thinkingDetail) {
     if (!rendered) {
@@ -1387,7 +1405,7 @@ function MarkdownRecordContent({
             aria-expanded={thinkingExpanded}
             onClick={() => { onThinkingExpandedChange(!thinkingExpanded) }}
           >
-            Thinking
+            {t('details.thinking')}
             <IconChevronRightOutline14 className={css.thinkingChevron} size={12} />
           </button>
           {thinkingExpanded && (
@@ -1411,10 +1429,12 @@ function MarkdownRecordContent({
           blocks={record.cell.sourceBlocks}
           preview={preview}
           onOpenCall={onOpenCall}
+          t={t}
         />
         <MessageImages
           blocks={record.cell.sourceBlocks}
           preview={preview}
+          t={t}
         />
       </div>
     )
@@ -1440,9 +1460,10 @@ function MarkdownRecordContent({
           blocks={record.cell.sourceBlocks}
           preview={preview}
           onOpenCall={onOpenCall}
+          t={t}
         />
       )}
-      <MessageImages blocks={record.cell.sourceBlocks} preview={preview} />
+      <MessageImages blocks={record.cell.sourceBlocks} preview={preview} t={t} />
     </div>
   )
 }
@@ -1499,15 +1520,17 @@ function RecordPayload({
   record,
   direction,
   preview = false,
+  t,
 }: {
   record: TableRecord
   direction: 'input' | 'output'
   preview?: boolean
+  t: TranslateNS<typeof NS>
 }) {
   const value = direction === 'input' ? record.cell.inputDetail : record.cell.outputDetail
   const missing = direction === 'input'
-    ? 'No payload captured'
-    : 'No result captured'
+    ? t('details.noPayload')
+    : t('details.noResult')
   if (!value) return <p className={css.noPayload}>{missing}</p>
   const error = direction === 'output' && record.cell.isError === true
   const payloadClass = preview ? css.jsonPreview : css.jsonPayload
@@ -1537,6 +1560,7 @@ function RecordPayload({
         blocks={record.cell.outputBlocks}
         error={error}
         preview={preview}
+        t={t}
       />
     )
   }
@@ -1712,6 +1736,7 @@ export function TrajectoryTable({
   onToggleAssistant,
   inspectCallId = null,
   onInspectApplied,
+  t,
 }: TrajectoryTableProps) {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<SelectedRequest | null>(null)
@@ -2532,17 +2557,17 @@ export function TrajectoryTable({
         || (selected !== undefined && selectedState !== undefined)) && (
         <aside
           className={css.details}
-          aria-label="Event details"
+          aria-label={t('details.eventDetails')}
           style={detailsWidth === null ? undefined : { width: detailsWidth }}
         >
           <div
             className={css.detailsResizeHandle}
             role="separator"
-            aria-label="Resize event details"
+            aria-label={t('details.resize')}
             aria-controls="trajectory-detail-panel"
             aria-orientation="vertical"
             tabIndex={0}
-            title="Drag to resize. Double-click to reset."
+            title={t('details.dragHint')}
             onDoubleClick={() => {
               setDetailsWidth(null)
               setToolRequestOffset(null)
@@ -2663,13 +2688,13 @@ export function TrajectoryTable({
             <button
               type="button"
               className={css.close}
-              aria-label="Close details"
+              aria-label={t('details.close')}
               onClick={clearInspectorSelection}
             >
               <span aria-hidden="true">×</span>
             </button>
           </div>
-          <div className={css.detailTabs} role="tablist" aria-label="Event details">
+          <div className={css.detailTabs} role="tablist" aria-label={t('details.eventDetails')}>
             {selectedTabs.map(tab => (
               <button
                 key={tab.id}
@@ -2793,14 +2818,14 @@ export function TrajectoryTable({
                 </dl>
                 <div className={css.overviewSections}>
                   {selectedRequestOptions !== undefined && (
-                    <OverviewSection label="Options" onOpen={() => { activateTab('options') }}>
+                    <OverviewSection label={t('details.options')} onOpen={() => { activateTab('options') }}>
                       <RequestOptions options={selectedRequestOptions} preview />
                     </OverviewSection>
                   )}
-                  <OverviewSection label="Usage" onOpen={() => { activateTab('usage') }}>
+                  <OverviewSection label={t('details.usage')} onOpen={() => { activateTab('usage') }}>
                     <UsageRows usage={selectedRequestUsage} />
                   </OverviewSection>
-                  <OverviewSection label="Timing" onOpen={() => { activateTab('timing') }}>
+                  <OverviewSection label={t('details.timing')} onOpen={() => { activateTab('timing') }}>
                     <RequestTiming
                       assistant={selectedRequestAssistant}
                       anchor={selectedRequestAnchor}
@@ -2832,6 +2857,7 @@ export function TrajectoryTable({
               <SystemPromptDiff
                 before={selectedPreviousPrompt}
                 after={selectedPrompt}
+                t={t}
               />
             )}
             {promptSelected && activeTab === 'system-prompt' && (
@@ -2881,6 +2907,7 @@ export function TrajectoryTable({
                       thinkingExpanded={thinkingExpanded}
                       onThinkingExpandedChange={setThinkingExpanded}
                       onOpenCall={openCallSummary}
+                      t={t}
                     />
                   </div>
                 )}
@@ -2986,7 +3013,7 @@ export function TrajectoryTable({
                   {isMarkdownRecord(selected)
                     ? (
                       <>
-                        <OverviewSection label="Preview" onOpen={() => { activateTab('rendered') }}>
+                        <OverviewSection label={t('details.preview')} onOpen={() => { activateTab('rendered') }}>
                           <MarkdownRecordContent
                             record={selected}
                             rendered
@@ -2994,6 +3021,7 @@ export function TrajectoryTable({
                             thinkingExpanded={thinkingExpanded}
                             onThinkingExpandedChange={setThinkingExpanded}
                             onOpenCall={openCallSummary}
+                            t={t}
                           />
                         </OverviewSection>
                       </>
@@ -3001,23 +3029,23 @@ export function TrajectoryTable({
                     : (
                       <>
                         {selected.cell.inputDetail && (
-                          <OverviewSection label="Payload" onOpen={() => { activateTab('input') }}>
-                            <RecordPayload record={selected} direction="input" preview />
+                          <OverviewSection label={t('details.payload')} onOpen={() => { activateTab('input') }}>
+                            <RecordPayload record={selected} direction="input" preview t={t} />
                           </OverviewSection>
                         )}
                         {selected.cell.outputDetail && (
-                          <OverviewSection label="Result" onOpen={() => { activateTab('output') }}>
-                            <RecordPayload record={selected} direction="output" preview />
+                          <OverviewSection label={t('details.result')} onOpen={() => { activateTab('output') }}>
+                            <RecordPayload record={selected} direction="output" preview t={t} />
                           </OverviewSection>
                         )}
-                        <OverviewSection label="Schema" onOpen={() => { activateTab('schema') }}>
+                        <OverviewSection label={t('details.schema')} onOpen={() => { activateTab('schema') }}>
                           <RecordSchema record={selected} preview />
                         </OverviewSection>
                       </>
                     )}
                   {selectedAssistantRequestTarget !== undefined && (
                     <OverviewSection
-                      label="Request Timing"
+                      label={t('details.requestTiming')}
                       onOpen={() => {
                         selectRequest(selectedAssistantRequestTarget, 'timing')
                       }}
@@ -3026,7 +3054,7 @@ export function TrajectoryTable({
                     </OverviewSection>
                   )}
                   {(selected.cell.kind === 'tool' || selected.cell.kind === 'subtool') && (
-                    <OverviewSection label="Timing" onOpen={() => { activateTab('timing') }}>
+                    <OverviewSection label={t('details.timing')} onOpen={() => { activateTab('timing') }}>
                       <RecordTiming record={selected} />
                     </OverviewSection>
                   )}
@@ -3040,6 +3068,7 @@ export function TrajectoryTable({
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
                 onOpenCall={openCallSummary}
+                t={t}
               />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'raw' && (
@@ -3049,16 +3078,17 @@ export function TrajectoryTable({
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
                 onOpenCall={openCallSummary}
+                t={t}
               />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'source' && (
               <MessageSource record={selected} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'input' && (
-              <RecordPayload record={selected} direction="input" />
+              <RecordPayload record={selected} direction="input" t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'output' && (
-              <RecordPayload record={selected} direction="output" />
+              <RecordPayload record={selected} direction="output" t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'schema' && (
               <RecordSchema record={selected} />

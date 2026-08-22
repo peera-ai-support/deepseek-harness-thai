@@ -658,7 +658,7 @@ describe('toStreamChunks', () => {
     ])
   })
 
-  it('maps thinking events to reasoning blocks', async () => {
+  it('lifts a thinking-only turn to text so the answer is not shown only under Think', async () => {
     const chunks = await collect(toStreamChunks(feed(
       { type: 'thinking_start', contentIndex: 0, partial: assistant() },
       { type: 'thinking_delta', contentIndex: 0, delta: 'mull', partial: assistant() },
@@ -666,9 +666,45 @@ describe('toStreamChunks', () => {
       { type: 'done', reason: 'stop', message: assistant() },
     )))
     expect(chunks.slice(0, 3)).toEqual([
+      { type: 'block-start', index: 0, blockType: 'text' },
+      { type: 'text-delta', index: 0, text: 'mull' },
+      { type: 'block-end', index: 0, block: { type: 'text', text: 'mull' } },
+    ])
+  })
+
+  it('keeps reasoning distinct when a text block follows', async () => {
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'thinking_start', contentIndex: 0, partial: assistant() },
+      { type: 'thinking_delta', contentIndex: 0, delta: 'mull', partial: assistant() },
+      { type: 'thinking_end', contentIndex: 0, content: 'mull', partial: assistant() },
+      { type: 'text_start', contentIndex: 1, partial: assistant() },
+      { type: 'text_delta', contentIndex: 1, delta: 'hi', partial: assistant() },
+      { type: 'text_end', contentIndex: 1, content: 'hi', partial: assistant() },
+      { type: 'done', reason: 'stop', message: assistant() },
+    )))
+    expect(chunks.slice(0, 6)).toEqual([
       { type: 'block-start', index: 0, blockType: 'reasoning' },
       { type: 'reasoning-delta', index: 0, text: 'mull' },
       { type: 'block-end', index: 0, block: { type: 'reasoning', text: 'mull' } },
+      { type: 'block-start', index: 1, blockType: 'text' },
+      { type: 'text-delta', index: 1, text: 'hi' },
+      { type: 'block-end', index: 1, block: { type: 'text', text: 'hi' } },
+    ])
+  })
+
+  it('keeps reasoning distinct when a tool call follows', async () => {
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'thinking_start', contentIndex: 0, partial: assistant() },
+      { type: 'thinking_end', contentIndex: 0, content: 'mull', partial: assistant() },
+      { type: 'toolcall_start', contentIndex: 1, partial: partialWithToolCall },
+      { type: 'toolcall_end', contentIndex: 1, toolCall: { type: 'toolCall', id: 'call-1', name: 'f', arguments: {} }, partial: partialWithToolCall },
+      { type: 'done', reason: 'toolUse', message: assistant({ content: partialWithToolCall.content, stopReason: 'toolUse' }) },
+    )))
+    expect(chunks.slice(0, 4)).toEqual([
+      { type: 'block-start', index: 0, blockType: 'reasoning' },
+      { type: 'block-end', index: 0, block: { type: 'reasoning', text: 'mull' } },
+      { type: 'block-start', index: 1, blockType: 'tool-call' },
+      { type: 'block-end', index: 1, block: { type: 'tool-call', id: 'call-1', name: 'f', arguments: '{}' } },
     ])
   })
 

@@ -28,6 +28,27 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
+/**
+ * Re-spell a reasoning block's chunks as a text block, keeping the block
+ * index and content; used only when a turn carried no text at all.
+ * @param chunk - a reasoning block-start/delta/end chunk.
+ * @returns the same chunk re-spelled as text.
+ */
+function promoteReasoningToText(chunk: StreamChunk): StreamChunk {
+  switch (chunk.type) {
+    case 'block-start':
+      return chunk.blockType === 'reasoning' ? { ...chunk, blockType: 'text' } : chunk
+    case 'reasoning-delta':
+      return { type: 'text-delta', index: chunk.index, text: chunk.text }
+    case 'block-end':
+      return chunk.block.type === 'reasoning'
+        ? { type: 'block-end', index: chunk.index, block: { type: 'text', text: chunk.block.text } }
+        : chunk
+    default:
+      return chunk
+  }
+}
+
 // XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
 // (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
 // error.message : JSON.stringify(error)`), discarding the original Error and its
@@ -132,11 +153,29 @@ export async function* toStreamChunks(
   // in stream order), but we track ids per index for tool calls.
   const toolIds = new Map<number, { id: string; name: string }>()
 
+  // Reasoning blocks are held until the turn's kind is known: a model that
+  // answers its whole reply inside a `thinking` block (some anthropic-messages
+  // gateways leak the answer there and emit no text) would otherwise render
+  // its answer only under the folded Think section. When a text block or a
+  // tool call arrives the thinking is flushed as reasoning, unchanged; a turn
+  // that produces nothing but thinking is lifted to text so the answer shows.
+  let pendingReasoning: StreamChunk[] = []
+  let textSeen = false
+  let toolSeen = false
+  function* drainPending(as: 'reasoning' | 'text'): Generator<StreamChunk> {
+    for (const chunk of pendingReasoning) {
+      yield as === 'reasoning' ? chunk : promoteReasoningToText(chunk)
+    }
+    pendingReasoning = []
+  }
+
   for await (const event of events) {
     switch (event.type) {
       case 'start':
         break
       case 'text_start':
+        yield* drainPending('reasoning')
+        textSeen = true
         yield { type: 'block-start', index: event.contentIndex, blockType: 'text' }
         break
       case 'text_delta':
@@ -146,15 +185,17 @@ export async function* toStreamChunks(
         yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: event.content } }
         break
       case 'thinking_start':
-        yield { type: 'block-start', index: event.contentIndex, blockType: 'reasoning' }
+        pendingReasoning.push({ type: 'block-start', index: event.contentIndex, blockType: 'reasoning' })
         break
       case 'thinking_delta':
-        yield { type: 'reasoning-delta', index: event.contentIndex, text: event.delta }
+        pendingReasoning.push({ type: 'reasoning-delta', index: event.contentIndex, text: event.delta })
         break
       case 'thinking_end':
-        yield { type: 'block-end', index: event.contentIndex, block: { type: 'reasoning', text: event.content } }
+        pendingReasoning.push({ type: 'block-end', index: event.contentIndex, block: { type: 'reasoning', text: event.content } })
         break
       case 'toolcall_start': {
+        yield* drainPending('reasoning')
+        toolSeen = true
         // The id/name live on the partial's content at this index.
         const partial = event.partial.content[event.contentIndex]
         const id = partial?.type === 'toolCall' ? partial.id : ''
@@ -189,6 +230,7 @@ export async function* toStreamChunks(
         }
         break
       case 'done':
+        yield* drainPending(textSeen || toolSeen ? 'reasoning' : 'text')
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
         yield {
           type: 'finish',

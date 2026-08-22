@@ -78,6 +78,9 @@ function scriptedApi(overrides: {
       listDirectory: r => ok(r, { path: '/t', home: '/t', crumbs: [], entries: [], truncated: false }),
       createDirectory: r => ok(r, { path: '/t/new' }),
       openPath: r => ok(r, { opened: true as const }),
+      updateCheck: r => ok(r, {
+        currentVersion: '0-test', latestVersion: null, updateAvailable: false, repoRoot: '/t',
+      }),
       ...overrides.host,
     },
     workspace: {

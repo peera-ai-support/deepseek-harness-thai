@@ -45,6 +45,12 @@ export interface RpcErrorDetailsMap {
   'directory-exists': { path: string }
   'directory-create-failed': { path: string }
   'directory-picker-unavailable': { capability: string }
+  /** The host PATH has no git executable; the message names the search. */
+  'git-unavailable': {}
+  /** The installation is not a git checkout (no workspace walk-up or no .git); the details name the suspected root when known. */
+  'not-a-git-checkout': { repoRoot?: string }
+  /** `git fetch` failed (network, credentials, or a malformed repo); the message carries git's own text. */
+  'git-fetch-failed': {}
   'agent-preset-read-only': { agentPreset: string; reason: string }
   'agent-preset-locked': { sessionId: SessionId; agentPreset: string }
   'agent-preset-conflict': { sessionId: SessionId; requestedPreset: string; existingPreset?: string }

@@ -40,6 +40,10 @@ interface ComWorld {
   registered: number
   unregistered: number
   uninitialized: number
+  showOwners: unknown[]
+  ownersCreated: number
+  ownersDestroyed: number
+  createWindowReturnsNull: boolean
 }
 
 function comWorld(overrides: Partial<ComWorld> = {}): ComWorld {
@@ -49,6 +53,7 @@ function comWorld(overrides: Partial<ComWorld> = {}): ComWorld {
     path: 'C:\\选中\\directory',
     titles: [], options: [], dpiContexts: [], freed: [], released: [], posted: [],
     registered: 0, unregistered: 0, uninitialized: 0,
+    showOwners: [], ownersCreated: 0, ownersDestroyed: 0, createWindowReturnsNull: false,
     ...overrides,
   }
 }
@@ -67,7 +72,7 @@ function installFakeKoffi(world: ComWorld): void {
       switch (slot) {
         case 9: world.options.push(args[0] as number); return 0
         case 17: world.titles.push(args[0] as string); return 0
-        case 3: return world.showHr
+        case 3: world.showOwners.push(args[0]); return world.showHr
         case 20: {
           if (world.getResultHr < 0) return world.getResultHr
           ;(args[0] as unknown[])[0] = itemPtr
@@ -120,6 +125,19 @@ function installFakeKoffi(world: ComWorld): void {
               return 1
             }
             case 'PostMessageW': return (hwnd: unknown, message: number) => { world.posted.push({ hwnd, message }); return 1 }
+            case 'CreateWindowExW': return () => {
+              if (world.createWindowReturnsNull) return null
+              world.ownersCreated += 1
+              return { kind: 'owner-hwnd' }
+            }
+            case 'DestroyWindow': return () => { world.ownersDestroyed += 1; return 1 }
+            case 'GetForegroundWindow': return () => ({ kind: 'fg-hwnd' })
+            case 'GetWindowThreadProcessId': return () => 9001
+            case 'AttachThreadInput': return () => 1
+            case 'SetForegroundWindow': return () => 1
+            case 'AllowSetForegroundWindow': return () => 1
+            case 'ShowWindow': return () => 1
+            case 'BringWindowToTop': return () => 1
             default: throw new Error(`unexpected native import ${dll}/${name}`)
           }
         },
@@ -175,9 +193,23 @@ describe('loadWin32DialogBindings over the fake COM world', () => {
     expect(world.titles).toEqual(['选择工作区目录'])
     expect(world.options).toHaveLength(1)
     expect(showing).toHaveBeenCalledWith(31337)
+    expect(world.showOwners).toEqual([null])
+    expect(world.ownersCreated).toBe(1)
+    expect(world.ownersDestroyed).toBe(1)
     expect(world.freed).toHaveLength(1)
     expect(world.released).toEqual(['item', 'dialog'])
     expect(world.uninitialized).toBe(1)
+  })
+
+  it('shows with no owner when window creation is refused, and still destroys nothing', async () => {
+    const world = comWorld({ createWindowReturnsNull: true })
+    installFakeKoffi(world)
+    const { loadWin32DialogBindings } = await loadBindingsModule()
+    const bindings = await loadWin32DialogBindings()
+    expect(runFolderDialog(bindings, 'Pick', vi.fn())).toBe('C:\\选中\\directory')
+    expect(world.showOwners).toEqual([null])
+    expect(world.ownersCreated).toBe(0)
+    expect(world.ownersDestroyed).toBe(0)
   })
 
   it('maps dismissal and the S_FALSE CoInitializeEx', async () => {
@@ -188,6 +220,7 @@ describe('loadWin32DialogBindings over the fake COM world', () => {
     expect(runFolderDialog(bindings, 'Pick', vi.fn())).toBeNull()
     expect(world.released).toEqual(['dialog'])
     expect(world.uninitialized).toBe(1)
+    expect(world.ownersDestroyed).toBe(1)
   })
 
   it('cascades DPI contexts to the first the host accepts', async () => {

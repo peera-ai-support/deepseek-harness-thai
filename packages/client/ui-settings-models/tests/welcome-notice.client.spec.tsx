@@ -13,7 +13,7 @@ import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
 import type { WelcomeNoticeProps } from '../src/client/WelcomeNotice.tsx'
 import { decodeWelcomeSection, WelcomeNoticeStore } from '../src/client/welcome-store.ts'
 import type { WelcomeSection } from '../src/client/welcome-store.ts'
-import { en, zh } from '../src/client/locales.ts'
+import { en, th, zh } from '../src/client/locales.ts'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_COPY, WELCOME_NOTICE_SETTINGS_NAMESPACE,
   WELCOME_NOTICE_VERSION,
@@ -94,6 +94,7 @@ describe('WelcomeNotice', () => {
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
+    expect(th.welcomeBody).toBe(WELCOME_NOTICE_COPY.th.body)
   })
 
   it('renders one blocking modal action and focuses the title', async () => {

@@ -107,6 +107,9 @@ const PRIVILEGED_METHODS = new Set([
   'agentPreset.remove',
   'host.pickDirectory',
   'host.openPath',
+  // Runs git fetch (a network fetch that advances remote-tracking refs) and
+  // reports repo/version facts; loopback-pinned like the other host-fact methods.
+  'host.updateCheck',
   'settings.describe',
   'settings.openDocument',
   'settings.update',

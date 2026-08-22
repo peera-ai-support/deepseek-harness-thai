@@ -93,6 +93,9 @@
       "path": "../directory-picker"
     },
     {
+      "path": "../../subprocess/subprocess"
+    },
+    {
       "path": "../../extensions/cordis-host-runner"
     },
     {

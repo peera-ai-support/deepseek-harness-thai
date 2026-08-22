@@ -138,6 +138,13 @@ describe('apply', () => {
           'row.instructions': 'Instructions',
           'menu.userOnly': 'user-only',
         },
+        th: {
+          'row.running': 'กำลังโหลดทักษะ (Skill)',
+          'row.failed': 'โหลดทักษะไม่สำเร็จ',
+          'row.stopped': 'หยุดการโหลดทักษะแล้ว',
+          'row.instructions': 'คำแนะนำ',
+          'menu.userOnly': 'เฉพาะผู้ใช้',
+        },
       },
     }])
   })

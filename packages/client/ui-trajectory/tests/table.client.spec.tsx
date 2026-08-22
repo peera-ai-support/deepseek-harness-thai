@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { TrajectoryTable } from '../src/client/TrajectoryTable.tsx'
 import type { TrajectoryTurnModel } from '../src/client/layout.ts'
+import { zh, type TrajectoryKey } from '../src/client/locales.ts'
+const specT = (key: string, params?: Record<string, unknown>): string => { const v = zh[key as TrajectoryKey]; return v === undefined ? key : params === undefined ? v : v.replace(/\{(\w+)\}/g, (_, n: string) => { const v = params[n]; return typeof v === 'string' || typeof v === 'number' ? String(v) : '' }) }
 
 afterEach(() => {
   cleanup()
@@ -62,6 +64,7 @@ const FOLD_PROPS = {
   onToggleTurn: () => {},
   collapsedAssistants: new Set<string>(),
   onToggleAssistant: () => {},
+  t: (key: string, params?: Record<string, unknown>) => specT(key, params),
 }
 
 describe('TrajectoryTable', () => {
@@ -90,7 +93,7 @@ describe('TrajectoryTable', () => {
   it('shows assistant timing facts after keyboard selection', () => {
     render(<TrajectoryTable turns={TURNS} {...FOLD_PROPS} />)
     fireEvent.keyDown(screen.getByRole('row', { name: /ASSISTANT/ }), { key: 'Enter' })
-    fireEvent.click(screen.getByRole('button', { name: 'Request Timing' }))
+    fireEvent.click(screen.getByRole('button', { name: '请求时序' }))
 
     expect(screen.getByText('500 ms')).toBeTruthy()
     expect(screen.getByText('1.00 s')).toBeTruthy()
@@ -159,12 +162,12 @@ describe('TrajectoryTable', () => {
     render(<TrajectoryTable turns={turns} {...FOLD_PROPS} />)
 
     fireEvent.click(screen.getByRole('row', { name: /ASSISTANT/ }))
-    const toggle = screen.getByRole('button', { name: 'Thinking' })
+    const toggle = screen.getByRole('button', { name: '思考' })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(screen.queryByText(thinking)).toBeNull()
 
     fireEvent.click(toggle)
-    expect(screen.getByRole('button', { name: 'Thinking' })).toBe(toggle)
+    expect(screen.getByRole('button', { name: '思考' })).toBe(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(toggle.parentElement?.textContent?.length).toBeGreaterThan(thinking.length)
   })
@@ -210,14 +213,14 @@ describe('TrajectoryTable', () => {
     fireEvent.click(row)
 
     expect(row.getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('complementary', { name: 'Event details' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: '事件详情' })).toBeTruthy()
 
     const tablePane = screen.getByRole('table').parentElement
     expect(tablePane).not.toBeNull()
     fireEvent.click(tablePane as HTMLElement)
 
     expect(row.getAttribute('aria-selected')).toBe('false')
-    expect(screen.queryByRole('complementary', { name: 'Event details' })).toBeNull()
+    expect(screen.queryByRole('complementary', { name: '事件详情' })).toBeNull()
     expect(onClearSelection).toHaveBeenCalledOnce()
   })
 
@@ -853,7 +856,7 @@ describe('TrajectoryTable', () => {
     )
 
     expect(screen.getByRole('row', { name: /TOOL/ }).getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByRole('complementary', { name: 'Event details' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: '事件详情' })).toBeTruthy()
     expect(onInspectApplied).toHaveBeenCalledOnce()
   })
 

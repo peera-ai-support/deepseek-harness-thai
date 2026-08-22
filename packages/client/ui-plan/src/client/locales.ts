@@ -18,3 +18,11 @@ export const en = {
   'chip.off.aria': 'Plan mode off, press to turn on',
   'chip.off.title': 'Plan mode off — click to turn on (/plan)',
 } satisfies Record<PlanKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'chip.on.aria': 'เปิดโหมด Plan แล้ว กดเพื่อปิด',
+  'chip.on.title': 'เปิดโหมด Plan แล้ว — คลิกเพื่อปิด (/plan off)',
+  'chip.off.aria': 'ปิดโหมด Plan แล้ว กดเพื่อเปิด',
+  'chip.off.title': 'ปิดโหมด Plan แล้ว — คลิกเพื่อเปิด (/plan)',
+} satisfies Record<PlanKey, string>

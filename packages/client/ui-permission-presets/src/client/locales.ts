@@ -29,6 +29,20 @@ export const en = {
   'confirm.enable': 'Enable Full access',
 } satisfies Record<PermissionSettingsKey, string>
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'title': 'สิทธิ์การเข้าถึง',
+  'description': 'เลือกโหมดสิทธิ์เริ่มต้นสำหรับเซสชันใหม่',
+  'loading': 'กำลังโหลด',
+  'unavailable': 'ไม่พร้อมใช้งาน',
+  'confirm.title': 'ยืนยันเปิดใช้งาน Full access?',
+  'confirm.description': 'เมื่อเปิดใช้งาน Full access เซสชันใหม่จะลดขั้นตอนการยืนยัน และสามารถดำเนินการต่างๆ ได้โดยตรง รวมถึงการดำเนินการที่ละเอียดอ่อน การแก้ไขไฟล์ หรือคำสั่งภายนอก แนะนำให้ใช้เมื่อคุณเชื่อถือและมั่นใจในงานเท่านั้น',
+  'confirm.acknowledge': 'ฉันเข้าใจความเสี่ยงและต้องการดำเนินการต่อ',
+  'confirm.cancel': 'ยกเลิก',
+  'confirm.enable': 'เปิดใช้งาน Full access',
+} satisfies Record<PermissionSettingsKey, string>
+
+
 /** Simplified Chinese dictionary for the current-session popup gate. */
 export const accessZh = {
   'confirm.title': '确认启用 Full access？',
@@ -48,4 +62,13 @@ export const accessEn = {
   'confirm.acknowledge': 'I understand the risks and want to continue',
   'confirm.cancel': 'Cancel',
   'confirm.enable': 'Enable Full access',
+} satisfies Record<PermissionAccessKey, string>
+
+/** Thai dictionary for the current-session popup gate. */
+export const accessTh = {
+  'confirm.title': 'ยืนยันเปิดใช้งาน Full access?',
+  'confirm.description': 'เมื่อเปิดใช้งาน Full access เอเจนต์จะลดขั้นตอนการยืนยัน และสามารถดำเนินการต่างๆ ได้โดยตรง รวมถึงการดำเนินการที่ละเอียดอ่อน การแก้ไขไฟล์ หรือคำสั่งภายนอก แนะนำให้ใช้เมื่อคุณเชื่อถือและมั่นใจในงานปัจจุบันเท่านั้น',
+  'confirm.acknowledge': 'ฉันเข้าใจความเสี่ยงและต้องการดำเนินการต่อ',
+  'confirm.cancel': 'ยกเลิก',
+  'confirm.enable': 'เปิดใช้งาน Full access',
 } satisfies Record<PermissionAccessKey, string>

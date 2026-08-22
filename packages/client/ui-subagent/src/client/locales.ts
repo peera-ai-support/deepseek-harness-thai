@@ -79,5 +79,44 @@ export const en: Record<SubagentKey, string> = {
   'readonly.body': 'The parent session is offline; reopen it to continue sending messages.',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<SubagentKey, string> = {
+  'diagnostic.corrupt': 'บันทึกเซสชันเสียหาย',
+  'diagnostic.unsupported': 'เวอร์ชันบันทึกเอเจนต์ย่อยไม่ได้รับการรองรับ',
+  'diagnostic.unavailable': 'บันทึกเซสชันไม่พร้อมใช้งานชั่วคราว',
+  'duration.seconds': '{seconds}วิ',
+  'duration.minutes': '{minutes}นาที {seconds}วิ',
+  'duration.hours': '{hours}ชม. {minutes}นาที {seconds}วิ',
+  'duration.days': '{days}วัน',
+  'duration.daysHours': '{days}วัน {hours}ชม.',
+  'duration.months': '~{months}เดือน',
+  'duration.monthsDays': '~{months}เดือน {days}วัน',
+  'duration.years': '~{years}ปี',
+  'duration.yearsMonths': '~{years}ปี {months}เดือน',
+  'duration.exactDays': '{days}วัน {hours}ชม. {minutes}นาที {seconds}วิ',
+  'duration.exactTitle': 'ระยะเวลาทำงานทั้งหมด: {duration}',
+  'loading.label': 'กำลังโหลดเอเจนต์ย่อย…',
+  'loading.aria': 'กำลังโหลดเอเจนต์ย่อย',
+  'load.error': 'ไม่สามารถโหลดเอเจนต์ย่อยได้',
+  'retry': 'ลองใหม่',
+  'mode.oneShot': 'ครั้งเดียว (One-shot)',
+  'mode.continuable': 'ทำต่อได้',
+  'activity.running': 'กำลังทำงาน',
+  'activity.inactive': 'ไม่ได้ทำงาน',
+  'branch.collapse': 'ย่อเอเจนต์ย่อยภายใต้ {label}',
+  'branch.expand': 'ขยายเอเจนต์ย่อยภายใต้ {label}',
+  'count.total.one': '{count} เอเจนต์ย่อย',
+  'count.total.other': '{count} เอเจนต์ย่อย',
+  'count.running.one': '{count} เอเจนต์ย่อยกำลังทำงาน',
+  'count.running.other': '{count} เอเจนต์ย่อยกำลังทำงาน',
+  'switcher.aria': 'สลับไปยังเอเจนต์ย่อย: {title}',
+  'tree.aria': 'เซสชันเอเจนต์ย่อย',
+  'readonly.oneShot.title': 'บันทึกเอเจนต์ย่อยแบบครั้งเดียว',
+  'readonly.title': 'เอเจนต์ย่อยนี้อยู่ในโหมดอ่านอย่างเดียว',
+  'readonly.oneShot.body': 'งานแบบครั้งเดียวไม่รองรับข้อความเพิ่มเติม คุณสามารถดูบันทึกการทำงานทั้งหมดได้ที่นี่',
+  'readonly.body': 'เซสชันหลักออฟไลน์อยู่ในขณะนี้ เปิดเซสชันหลักใหม่เพื่อส่งข้อความต่อ',
+}
+
+
 /** Key domain of the `subagent` namespace (zh is the source of truth). */
 export type SubagentKey = keyof typeof zh

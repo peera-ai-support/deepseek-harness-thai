@@ -23,3 +23,12 @@ export const en = {
   'row.instructions': 'Instructions',
   'menu.userOnly': 'user-only',
 } satisfies Record<SkillKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'row.running': 'กำลังโหลดทักษะ (Skill)',
+  'row.failed': 'โหลดทักษะไม่สำเร็จ',
+  'row.stopped': 'หยุดการโหลดทักษะแล้ว',
+  'row.instructions': 'คำแนะนำ',
+  'menu.userOnly': 'เฉพาะผู้ใช้',
+} satisfies Record<SkillKey, string>

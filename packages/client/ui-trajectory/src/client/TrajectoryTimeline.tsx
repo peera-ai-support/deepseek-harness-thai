@@ -5,6 +5,8 @@ import {
   type PointerEvent,
 } from 'react'
 import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { NS } from './locales.ts'
 import type { TrajectoryTurnModel } from './layout.ts'
 import type { AssistantMetricDetail, TrajectoryCellKind, TrajectoryCellProps } from './trajectory-record.ts'
 import {
@@ -103,6 +105,7 @@ function formatRecordedTime(timestamp: number): string {
 }
 
 function timelineTooltipLabel(
+  t: TranslateNS<typeof NS>,
   kind: TrajectoryCellKind,
   detail: TimelineRecordDetail | undefined,
 ): string {
@@ -110,19 +113,20 @@ function timelineTooltipLabel(
   if (detail === undefined) return heading
   const duration = detail.durationMs === undefined
     ? null
-    : `Total ${formatTimelineOffset(detail.durationMs)}`
+    : t('timeline.total', { duration: formatTimelineOffset(detail.durationMs) })
   const range = detail.startedAt === undefined
     ? null
     : detail.durationMs === undefined
-      ? `Started ${formatRecordedTime(detail.startedAt)}`
+      ? t('timeline.started', { time: formatRecordedTime(detail.startedAt) })
       : `${formatRecordedTime(detail.startedAt)} → ${formatRecordedTime(
         detail.startedAt + detail.durationMs,
       )}`
   const segments = detail.ttftMs === undefined || detail.decodingMs === undefined
     ? null
-    : `TTFT ${formatTimelineOffset(detail.ttftMs)} · Decoding ${formatTimelineOffset(
-      detail.decodingMs,
-    )}`
+    : t('timeline.ttft', {
+      ttft: formatTimelineOffset(detail.ttftMs),
+      decoding: formatTimelineOffset(detail.decodingMs),
+    })
   const timing = [duration, segments].filter(value => value !== null).join(' · ')
   return [heading, range, timing].filter(value => value !== null && value !== '').join('\n')
 }
@@ -144,6 +148,8 @@ export interface TrajectoryTimelineProps {
   onRecordSelect?: (index: number) => void
   /** Bring the nearest record into view after clicking timeline whitespace. */
   onRecordFocus?: (index: number) => void
+  /** Translate a trajectory dictionary key. */
+  t: TranslateNS<typeof NS>
 }
 
 function orderedRange(left: number, right: number): FractionRange {
@@ -243,6 +249,7 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
   onRangeChange,
   onRecordSelect,
   onRecordFocus,
+  t,
 }: TrajectoryTimelineProps) {
   const model = useMemo(() => deriveTrajectoryTimeline(turns, mode), [mode, turns])
   const detailByIndex = useMemo(
@@ -380,7 +387,7 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
 
   if (model === null) {
     return (
-      <section ref={rootRef} className={css.root} aria-label="Trajectory timeline">
+      <section ref={rootRef} className={css.root} aria-label={t('timeline.aria')}>
         <div className={css.plot}>
           <LaneLabels />
           <div className={css.track}>
@@ -575,14 +582,14 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
   }
 
   return (
-    <section ref={rootRef} className={css.root} aria-label="Trajectory timeline">
+    <section ref={rootRef} className={css.root} aria-label={t('timeline.aria')}>
       <div className={css.plot}>
         <LaneLabels />
         <div
           ref={trackRef}
           className={css.track}
           data-panning={panning || undefined}
-          aria-label="Timeline overview; drag horizontally to focus events"
+          aria-label={t('timeline.overview')}
           tabIndex={0}
           onKeyDown={onKeyDown}
           onPointerDown={onPointerDown}
@@ -687,7 +694,7 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
                 return (
                   <Tooltip
                     key={span.index}
-                    label={() => timelineTooltipLabel(span.kind, detail)}
+                    label={() => timelineTooltipLabel(t, span.kind, detail)}
                     side="bottom"
                     delayMs={TIMELINE_TOOLTIP_DELAY_MS}
                   >

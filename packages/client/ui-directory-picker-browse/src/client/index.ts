@@ -27,9 +27,9 @@ export const inject = ['slots', 'workspaces', 'locale']
  */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
-    // The two dictionaries land as a unit: if the second registration hits a
-    // rival owner of the namespace, the first rolls back before the throw —
-    // a failed activation must not squat the namespace's other locale.
+    // The dictionaries land as a unit: if a later registration hits a
+    // rival owner of the namespace, earlier ones roll back before the throw —
+    // a failed activation must not squat the namespace's other locales.
     const disposers: (() => void)[] = []
     const dictionaries: [locale: string, dict: Record<string, string>][] = [
       ['zh', {
@@ -61,6 +61,21 @@ export function apply(ctx: ClientContext): void {
         'browser.loading': 'Loading…',
         'browser.truncated': 'Too many folders to list; only the beginning is shown.',
         'browser.showHidden': 'Show hidden files',
+      }],
+      ['th', {
+        'browser.title': 'เลือกไดเรกทอรีพื้นที่ทำงาน',
+        'browser.home': 'หน้าหลัก (Home)',
+        'browser.newFolder': 'สร้างโฟลเดอร์ใหม่',
+        'browser.folderName': 'ชื่อโฟลเดอร์',
+        'browser.createIn': 'สร้างโฟลเดอร์ใหม่ใน "{name}"',
+        'browser.untitledFolder': 'โฟลเดอร์ไม่มีชื่อ',
+        'browser.create': 'สร้าง',
+        'browser.cancel': 'ยกเลิก',
+        'browser.open': 'เปิด',
+        'browser.editPath': 'แก้ไขเส้นทาง',
+        'browser.loading': 'กำลังโหลด…',
+        'browser.truncated': 'มีโฟลเดอร์จำนวนมาก แสดงเฉพาะส่วนแรกเท่านั้น',
+        'browser.showHidden': 'แสดงไฟล์ที่ซ่อนอยู่',
       }],
     ]
     try {
