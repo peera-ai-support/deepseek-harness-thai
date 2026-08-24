@@ -38,6 +38,7 @@ export const mcpServerEntrySchema = z.object({
   args: z.array(z.string()),
   cwd: z.string().optional(),
   env: z.array(mcpHeaderOrEnvSchema),
+  toolCallTimeoutMs: z.number().int().positive().optional(),
   extra: z.array(z.string()),
 }).superRefine((entry, ctx) => {
   if (entry.transport === 'streamable-http' && entry.url === undefined) {

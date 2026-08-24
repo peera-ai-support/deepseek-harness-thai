@@ -75,6 +75,21 @@ describe('parseMcpPatch', () => {
     expect(parseMcpPatch('')).toEqual([])
   })
 
+  it('parses and re-emits a toolCallTimeoutMs override', () => {
+    const patch = `- insert:
+    - id: mcp-t
+      name: '${MCP_PLUGIN_NAME}'
+      config:
+        serverName: t
+        transport: stdio
+        toolCallTimeoutMs: 120000
+        command: echo
+`
+    const [server] = parseMcpPatch(patch)
+    expect(server?.toolCallTimeoutMs).toBe(120000)
+    expect(rebuildMcpPatchText(patch, parseMcpPatch(patch))).toBe(patch)
+  })
+
   it('parses args flow sequences with quoted and escaped values', () => {
     const patch = `- insert:
     - id: mcp-d

@@ -52,6 +52,8 @@ export interface McpServerEntry {
   cwd?: string
   /** stdio child environment additions. */
   env: McpHeaderOrEnv[]
+  /** Per-tool-call timeout in ms; the plugin default (60000) applies when absent. */
+  toolCallTimeoutMs?: number
   /** Raw config lines this editor does not model (e.g. reconnect timeouts); preserved on rewrite. */
   extra: string[]
 }

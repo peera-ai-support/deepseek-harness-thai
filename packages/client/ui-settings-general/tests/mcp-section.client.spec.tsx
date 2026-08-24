@@ -45,6 +45,12 @@ function okResponse<T>(value: T) {
   return { result: { ok: true as const, value } }
 }
 
+function firstUpsert(mock: { upsertServer: { mock: { calls: Array<[{ server: McpServerEntry }]> } } }): { server: McpServerEntry } {
+  const call = mock.upsertServer.mock.calls[0]
+  if (call === undefined) throw new Error('upsert not called')
+  return call[0]
+}
+
 function mount(servers: McpServerEntry[], statuses: McpServerStatus[] = []) {
   const api = {
     listServers: vi.fn(async () => okResponse({ servers, filePath: '/home/u/.dsh/cordis.patch.yml' })),
@@ -96,8 +102,7 @@ describe('McpSection', () => {
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    // oxlint-disable-next-line no-unnecessary-type-assertion -- tuple index needs the tsc noUncheckedIndexedAccess guard
-    const payload = api.upsertServer.mock.calls[0]![0]!
+    const payload = firstUpsert(api)
     expect(payload.server.serverName).toBe('github')
     expect(payload.server.id).toBe('mcp-github')
     expect(payload.server.transport).toBe('streamable-http')
@@ -110,11 +115,10 @@ describe('McpSection', () => {
     fireEvent.click(await screen.findByText('Add MCP server'))
     fireEvent.click(screen.getByText('Use this template'))
     expect(screen.getByDisplayValue('https://api.githubcopilot.com/mcp/')).toBeTruthy()
-    expect(screen.getByDisplayValue('GITHUB_TOKEN')).toBeTruthy()
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Headers').value).toContain('$env:GITHUB_TOKEN')
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    // oxlint-disable-next-line no-unnecessary-type-assertion -- tuple index needs the tsc noUncheckedIndexedAccess guard
-    const payload = api.upsertServer.mock.calls[0]![0]!
+    const payload = firstUpsert(api)
     expect(payload.server.id).toBe('mcp-github')
     expect(payload.server.serverName).toBe('github')
     expect(payload.server.url).toBe('https://api.githubcopilot.com/mcp/')
@@ -123,22 +127,61 @@ describe('McpSection', () => {
     ])
   })
 
-  it('saves an env-ref header, never a literal token', async () => {
+  it('saves an env-ref header from the Headers JSON textarea, never a literal token', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
     fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
-    const key = screen.getByLabelText('Headers Key')
-    fireEvent.change(key, { target: { value: 'Authorization' } })
-    fireEvent.change(screen.getByLabelText('Headers Value kind'), { target: { value: 'env' } })
-    fireEvent.change(screen.getByLabelText('Headers Env var name'), { target: { value: 'GITHUB_TOKEN' } })
-    fireEvent.change(screen.getByLabelText('Headers Prefix (e.g. Bearer )'), { target: { value: 'Bearer ' } })
+    fireEvent.change(screen.getByLabelText('Headers'), {
+      target: { value: '{"Authorization": "Bearer $env:GITHUB_TOKEN"}' },
+    })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    // oxlint-disable-next-line no-unnecessary-type-assertion -- tuple index needs the tsc noUncheckedIndexedAccess guard
-    const header = api.upsertServer.mock.calls[0]![0]!.server.headers[0]!
+    const header = firstUpsert(api).server.headers[0]!
     expect(header).toEqual({ name: 'Authorization', value: { kind: 'env', env: 'GITHUB_TOKEN', prefix: 'Bearer ' } })
+  })
+
+  it('saves a tool-call timeout override from the form', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
+    fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
+    fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://x.example/mcp' } })
+    fireEvent.change(screen.getByLabelText('Timeout (ms)'), { target: { value: '120000' } })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    expect(firstUpsert(api).server.toolCallTimeoutMs).toBe(120000)
+  })
+
+  it('saves a pasted full JSON config in JSON mode', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
+    fireEvent.click(screen.getByText('JSON'))
+    fireEvent.change(screen.getByLabelText('Full configuration (JSON)'), {
+      target: { value: JSON.stringify({ serverName: 'j1', transport: 'stdio', command: 'echo', args: ['a'] }) },
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    const payload = firstUpsert(api)
+    expect(payload.server.id).toBe('mcp-j1')
+    expect(payload.server.serverName).toBe('j1')
+    expect(payload.server.command).toBe('echo')
+    expect(payload.server.args).toEqual(['a'])
+  })
+
+  it('rejects an invalid JSON mode config with a message', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
+    fireEvent.click(screen.getByText('JSON'))
+    fireEvent.change(screen.getByLabelText('Full configuration (JSON)'), {
+      target: { value: '{"serverName": "x", "bogus": 1}' },
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.upsertServer).not.toHaveBeenCalled() })
+    expect(await screen.findByRole('alert')).toBeTruthy()
   })
 
   it('edits and removes a server through the mcp RPC', async () => {
@@ -147,8 +190,7 @@ describe('McpSection', () => {
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'gh2' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    // oxlint-disable-next-line no-unnecessary-type-assertion -- tuple index needs the tsc noUncheckedIndexedAccess guard
-    expect(api.upsertServer.mock.calls[0]![0]!.server.serverName).toBe('gh2')
+    expect(firstUpsert(api).server.serverName).toBe('gh2')
     fireEvent.click(screen.getByText('Remove'))
     await waitFor(() => { expect(api.removeServer).toHaveBeenCalledWith({ id: 'mcp-github' }) })
   })

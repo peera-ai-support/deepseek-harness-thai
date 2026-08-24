@@ -192,6 +192,11 @@ function parseEntryConfig(entryLines: readonly string[]): McpServerEntry | null 
         case 'args':
           entry.args = parseArgsFlow(raw)
           break
+        case 'toolCallTimeoutMs': {
+          const value = Number(raw)
+          if (Number.isInteger(value) && value > 0) entry.toolCallTimeoutMs = value
+          break
+        }
         case 'headers':
         case 'env':
           // Container keys own the following indent-10 item lines.
@@ -286,6 +291,9 @@ function serializeEntry(entry: McpServerEntry): string[] {
     `        serverName: ${entry.serverName}`,
     `        transport: ${entry.transport}`,
   ]
+  if (entry.toolCallTimeoutMs !== undefined) {
+    lines.push(`        toolCallTimeoutMs: ${entry.toolCallTimeoutMs}`)
+  }
   if (entry.transport === 'streamable-http') {
     if (entry.url === undefined || entry.url.trim() === '') {
       throw new McpConfigError('streamable-http server needs a url')

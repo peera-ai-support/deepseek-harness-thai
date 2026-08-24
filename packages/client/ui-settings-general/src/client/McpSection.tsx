@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-import type { McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
+import type { McpHeaderOrEnv, McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
 import css from './McpSection.module.css'
 
 /** Registrant-owned dependencies of {@link McpSection}. */
@@ -17,16 +17,7 @@ export interface McpSectionInjected {
 export type McpSectionComponentProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings'> & InjectFace<McpSectionInjected>
 
-/** One header/env row as the form edits it. The `env` shape maps to a `!!js process.env.*` read, never a literal secret. */
-interface DraftPair {
-  key: string
-  kind: 'literal' | 'env'
-  value: string
-  env: string
-  prefix: string
-}
-
-/** One server row as the form edits it. */
+/** The simple form-model of one server. Headers/env are edited as JSON with `$env:VAR` values. */
 interface Draft {
   id: string
   serverName: string
@@ -35,8 +26,9 @@ interface Draft {
   command: string
   args: string
   cwd: string
-  headers: DraftPair[]
-  env: DraftPair[]
+  timeoutMs: string
+  headersJson: string
+  envJson: string
   extra: string[]
 }
 
@@ -47,17 +39,19 @@ type UiStatus =
   | { kind: 'saved' }
   | { kind: 'error'; message: string }
 
+/** Which editor the add/edit card shows. */
+type EditorMode = 'form' | 'json'
+
 /** How often live connection statuses refresh while the section is shown. */
 const STATUS_POLL_MS = 5_000
 
-function emptyPair(): DraftPair {
-  return { key: '', kind: 'literal', value: '', env: '', prefix: '' }
-}
+/** `$env:VAR` marker used inside headers/env JSON values. */
+const ENV_MARKER = '$env:'
 
 function emptyDraft(): Draft {
   return {
     id: '', serverName: '', transport: 'streamable-http', url: '', command: '',
-    args: '', cwd: '', headers: [emptyPair()], env: [], extra: [],
+    args: '', cwd: '', timeoutMs: '', headersJson: '', envJson: '', extra: [''],
   }
 }
 
@@ -71,24 +65,137 @@ function githubPresetDraft(): Draft {
     command: '',
     args: '',
     cwd: '',
-    headers: [{ key: 'Authorization', kind: 'env', value: '', env: 'GITHUB_TOKEN', prefix: 'Bearer ' }],
-    env: [],
+    timeoutMs: '',
+    headersJson: '{\n  "Authorization": "Bearer $env:GITHUB_TOKEN"\n}',
+    envJson: '',
     extra: [],
   }
 }
 
-function valueToPair(key: string, value: McpValue): DraftPair {
-  return value.kind === 'env'
-    ? { key, kind: 'env', value: '', env: value.env ?? '', prefix: value.prefix ?? '' }
-    : { key, kind: 'literal', value: value.value ?? '', env: '', prefix: '' }
+// ---- JSON value helpers (headers/env) ----
+/** Serialize one value for the JSON editor; env refs use the `$env:VAR` marker. */
+function valueToJsonString(value: McpValue): string {
+  if (value.kind === 'env') return `${value.prefix ?? ''}${ENV_MARKER}${value.env ?? ''}${value.suffix ?? ''}`
+  return value.value ?? ''
 }
 
-function pairToValue(pair: DraftPair): McpValue {
-  return pair.kind === 'env'
-    ? { kind: 'env', env: pair.env, ...pair.prefix === '' ? {} : { prefix: pair.prefix } }
-    : { kind: 'literal', value: pair.value }
+/** Parse one JSON string value; a single `$env:VAR` marker becomes an env ref. */
+function jsonStringToValue(text: string, name: string): McpValue {
+  const first = text.indexOf(ENV_MARKER)
+  if (first < 0) return { kind: 'literal', value: text }
+  const second = text.indexOf(ENV_MARKER, first + ENV_MARKER.length)
+  if (second >= 0) throw new Error(`"${name}" uses $env: at most once`)
+  const envStart = first + ENV_MARKER.length
+  let envEnd = envStart
+  while (envEnd < text.length) {
+    const ch = text[envEnd]
+    if (ch === undefined || !/[A-Za-z0-9_]/.test(ch)) break
+    envEnd += 1
+  }
+  const env = text.slice(envStart, envEnd)
+  if (env === '') throw new Error(`"${name}" has $env: without a variable name`)
+  return {
+    kind: 'env',
+    env,
+    ...(first === 0 ? {} : { prefix: text.slice(0, first) }),
+    ...(envEnd < text.length ? { suffix: text.slice(envEnd) } : {}),
+  }
 }
 
+/** Serialize pairs to pretty JSON text for the editor. */
+function pairsToJsonText(pairs: readonly McpHeaderOrEnv[]): string {
+  if (pairs.length === 0) return ''
+  const lines = pairs.map(p => `  ${JSON.stringify(p.name)}: ${JSON.stringify(valueToJsonString(p.value))}`)
+  return `{\n${lines.join(',\n')}\n}`
+}
+
+/** Parse JSON-object editor text into validated pairs; throws with a parse or semantic message. */
+function jsonTextToPairs(text: string): McpHeaderOrEnv[] {
+  const trimmed = text.trim()
+  if (trimmed === '') return []
+  const parsed: unknown = JSON.parse(trimmed)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('must be an object such as {"Authorization": "Bearer xxx"}')
+  }
+  const pairs: McpHeaderOrEnv[] = []
+  for (const [name, raw] of Object.entries(parsed)) {
+    if (typeof raw !== 'string') throw new Error(`"${name}" must be a string`)
+    pairs.push({ name, value: jsonStringToValue(raw, name) })
+  }
+  return pairs
+}
+
+/** Serialize the whole draft to JSON for the JSON editor. */
+function draftToJsonText(draft: Draft): string {
+  const body: Record<string, unknown> = {
+    serverName: draft.serverName,
+    transport: draft.transport,
+    ...(draft.transport === 'streamable-http' ? { url: draft.url } : {}),
+    ...(draft.transport === 'stdio'
+      ? { command: draft.command, args: draft.args.trim() === '' ? [] : draft.args.trim().split(/\s+/) }
+      : {}),
+    ...(draft.cwd.trim() === '' ? {} : { cwd: draft.cwd }),
+    ...(draft.timeoutMs.trim() === '' ? {} : { timeoutMs: Number(draft.timeoutMs) }),
+    ...(draft.id.trim() === '' ? {} : { id: draft.id }),
+  }
+  return JSON.stringify(body, null, 2)
+}
+
+/** Parse JSON editor text back into a draft; throws with a message on bad shapes. */
+function jsonTextToDraft(text: string): Draft {
+  const parsed: unknown = JSON.parse(text)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('must be a single server object')
+  }
+  const raw = parsed as Record<string, unknown>
+  const allowed = new Set(['id', 'serverName', 'transport', 'url', 'command', 'args', 'cwd', 'timeoutMs', 'headers', 'env'])
+  for (const key of Object.keys(raw)) {
+    if (!allowed.has(key)) throw new Error(`unknown key "${key}"`)
+  }
+  const transport = raw.transport === 'stdio' ? 'stdio' as const : 'streamable-http' as const
+  const pairsFrom = (value: unknown): McpHeaderOrEnv[] => {
+    if (value === undefined) return []
+    return jsonTextToPairs(JSON.stringify(value, null, 2))
+  }
+  return {
+    id: typeof raw.id === 'string' ? raw.id : '',
+    serverName: typeof raw.serverName === 'string' ? raw.serverName : '',
+    transport,
+    url: typeof raw.url === 'string' ? raw.url : '',
+    command: typeof raw.command === 'string' ? raw.command : '',
+    args: Array.isArray(raw.args) ? raw.args.map(String).join(' ') : '',
+    cwd: typeof raw.cwd === 'string' ? raw.cwd : '',
+    timeoutMs: typeof raw.timeoutMs === 'number' && Number.isInteger(raw.timeoutMs) && raw.timeoutMs > 0
+      ? String(raw.timeoutMs)
+      : '',
+    headersJson: pairsToJsonText(pairsFrom(raw.headers)),
+    envJson: pairsToJsonText(pairsFrom(raw.env)),
+    extra: [],
+  }
+}
+
+/** Draft → wire entry; the RPC re-validates everything server-side. */
+function draftToEntry(draft: Draft): McpServerEntry {
+  const id = draft.id.trim() !== '' ? draft.id.trim() : `mcp-${draft.serverName}`
+  const timeout = Number(draft.timeoutMs.trim())
+  return {
+    id,
+    serverName: draft.serverName,
+    transport: draft.transport,
+    ...(draft.transport === 'streamable-http' ? { url: draft.url } : {}),
+    headers: jsonTextToPairs(draft.headersJson),
+    ...(draft.transport === 'stdio' ? { command: draft.command } : {}),
+    args: draft.args.trim() === '' ? [] : draft.args.trim().split(/\s+/),
+    ...(draft.cwd.trim() === '' ? {} : { cwd: draft.cwd }),
+    env: jsonTextToPairs(draft.envJson),
+    ...(draft.timeoutMs.trim() === '' || !Number.isInteger(timeout) || timeout <= 0
+      ? {}
+      : { toolCallTimeoutMs: timeout }),
+    extra: draft.extra,
+  }
+}
+
+/** Wire entry → draft for editing. */
 function toDraft(server: McpServerEntry): Draft {
   return {
     id: server.id,
@@ -98,98 +205,11 @@ function toDraft(server: McpServerEntry): Draft {
     command: server.command ?? '',
     args: server.args.join(' '),
     cwd: server.cwd ?? '',
-    headers: server.headers.map(p => valueToPair(p.name, p.value)),
-    env: server.env.map(p => valueToPair(p.name, p.value)),
+    timeoutMs: server.toolCallTimeoutMs === undefined ? '' : String(server.toolCallTimeoutMs),
+    headersJson: pairsToJsonText(server.headers),
+    envJson: pairsToJsonText(server.env),
     extra: [...server.extra],
   }
-}
-
-function draftToEntry(draft: Draft): McpServerEntry {
-  const id = draft.id.trim() !== '' ? draft.id.trim() : `mcp-${draft.serverName}`
-  const cleaned = (pairs: DraftPair[]) => pairs.filter(p => p.key.trim() !== '')
-  return {
-    id,
-    serverName: draft.serverName,
-    transport: draft.transport,
-    ...(draft.transport === 'streamable-http' ? { url: draft.url } : {}),
-    headers: cleaned(draft.headers).map(p => ({ name: p.key.trim(), value: pairToValue(p) })),
-    ...(draft.transport === 'stdio' ? { command: draft.command } : {}),
-    args: draft.args.trim() === '' ? [] : draft.args.trim().split(/\s+/),
-    ...(draft.cwd.trim() === '' ? {} : { cwd: draft.cwd }),
-    env: cleaned(draft.env).map(p => ({ name: p.key.trim(), value: pairToValue(p) })),
-    extra: draft.extra,
-  }
-}
-
-/** Column labels above every header/env pair editor. */
-function PairHeaders({ t }: { t: McpSectionComponentProps['t'] }) {
-  return (
-    <div className={css.pairHeaders}>
-      <span>{t('mcp.colKey')}</span>
-      <span>{t('mcp.colKind')}</span>
-      <span>{t('mcp.colValue')}</span>
-      <span>{t('mcp.colPrefix')}</span>
-      <span />
-    </div>
-  )
-}
-
-/** A pair-edit row with change callbacks. */
-function PairRow({ pair, label, onPatch, onRemove, t }: {
-  pair: DraftPair
-  label: string
-  onPatch: (patch: Partial<DraftPair>) => void
-  onRemove: () => void
-  t: McpSectionComponentProps['t']
-}) {
-  return (
-    <div className={css.pairRow}>
-      <input
-        className={css.input}
-        value={pair.key}
-        placeholder={t('mcp.placeholderKey')}
-        aria-label={`${label} ${t('mcp.keyName')}`}
-        onChange={(event) => { onPatch({ key: event.target.value }) }}
-      />
-      <select
-        className={css.input}
-        value={pair.kind}
-        aria-label={`${label} ${t('mcp.valueKind')}`}
-        onChange={(event) => { onPatch({ kind: event.target.value === 'env' ? 'env' : 'literal' }) }}
-      >
-        <option value="literal">{t('mcp.kindLiteral')}</option>
-        <option value="env">{t('mcp.kindEnv')}</option>
-      </select>
-      {pair.kind === 'env' ? (
-        <input
-          className={css.input}
-          value={pair.env}
-          placeholder={t('mcp.placeholderEnv')}
-          aria-label={`${label} ${t('mcp.envName')}`}
-          onChange={(event) => { onPatch({ env: event.target.value }) }}
-        />
-      ) : (
-        <input
-          className={css.input}
-          value={pair.value}
-          placeholder={t('mcp.placeholderLiteral')}
-          aria-label={`${label} ${t('mcp.value')}`}
-          onChange={(event) => { onPatch({ value: event.target.value }) }}
-        />
-      )}
-      {pair.kind === 'env' ? (
-        <input
-          className={css.input}
-          value={pair.prefix}
-          placeholder={t('mcp.envPrefix')}
-          aria-label={`${label} ${t('mcp.envPrefix')}`}
-          onChange={(event) => { onPatch({ prefix: event.target.value }) }}
-        />
-      ) : null}      <Button variant="ghost" size="sm" onClick={onRemove} className={css.removeButton}>
-        {t('mcp.remove')}
-      </Button>
-    </div>
-  )
 }
 
 /** The status chip label for one status entry. */
@@ -205,9 +225,9 @@ function statusLabel(status: McpServerStatus | undefined, t: McpSectionComponent
 
 /**
  * Render the MCP section: the managed server list with live connection
- * statuses, plus a form that inserts/replaces rows of
- * `$DSH_HOME/cordis.patch.yml` via the mcp RPC. Headers/env secrets are
- * entered as env-var references, never as literals.
+ * statuses, plus a Form/JSON editor that inserts/replaces rows of
+ * `$DSH_HOME/cordis.patch.yml` via the mcp RPC. Secrets are entered as
+ * `$env:VAR` references inside the JSON header values, never as literals.
  * @param props - section owner share, localized copy, and the connection face.
  * @returns the section element tree.
  */
@@ -221,6 +241,10 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [choosing, setChoosing] = useState(false)
   /** True when the draft came from a preset (shows the token note). */
   const [presetNote, setPresetNote] = useState(false)
+  /** Which editor the open add/edit card uses. */
+  const [editorMode, setEditorMode] = useState<EditorMode>('form')
+  /** Raw JSON text while the JSON editor is active. */
+  const [jsonText, setJsonText] = useState('')
 
   const load = async () => {
     setStatus({ kind: 'loading' })
@@ -254,21 +278,75 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     return () => { clearInterval(timer) }
   }, [])
 
-  const save = async (next: Draft) => {
+  const openForm = (next: Draft, note: boolean) => {
+    setDraft(next)
+    setPresetNote(note)
+    setEditorMode('form')
+    setJsonText('')
+    setChoosing(false)
+  }
+
+  const closeForm = () => {
+    setDraft(null)
+    setPresetNote(false)
+    setJsonText('')
+  }
+
+  const saveDraft = async (next: Draft) => {
+    let entry: McpServerEntry
+    try {
+      entry = draftToEntry(next)
+    } catch (error: unknown) {
+      setStatus({ kind: 'error', message: t('mcp.jsonInvalid', { message: error instanceof Error ? error.message : String(error) }) })
+      return
+    }
     setStatus({ kind: 'saving' })
     try {
-      const response = await connection.api.mcp.upsertServer({ server: draftToEntry(next) })
+      const response = await connection.api.mcp.upsertServer({ server: entry })
       if (!response.result.ok) {
         setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
         return
       }
       setServers(response.result.value.servers)
-      setDraft(null)
+      closeForm()
       setStatus({ kind: 'saved' })
       void loadStatus()
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     }
+  }
+
+  const saveCurrent = async () => {
+    if (draft === null) return
+    if (editorMode === 'json') {
+      let parsed: Draft
+      try {
+        parsed = jsonTextToDraft(jsonText)
+      } catch (error: unknown) {
+        setStatus({ kind: 'error', message: t('mcp.jsonInvalid', { message: error instanceof Error ? error.message : String(error) }) })
+        return
+      }
+      setDraft(parsed)
+      await saveDraft(parsed)
+      return
+    }
+    await saveDraft(draft)
+  }
+
+  const switchMode = (mode: EditorMode) => {
+    if (mode === editorMode) return
+    if (draft === null) return
+    if (mode === 'json') {
+      setJsonText(draftToJsonText(draft))
+    } else {
+      try {
+        setDraft(jsonTextToDraft(jsonText))
+      } catch {
+        // Invalid JSON: stay on the JSON editor so the text is not lost.
+        return
+      }
+    }
+    setEditorMode(mode)
   }
 
   const remove = async (server: McpServerEntry) => {
@@ -285,20 +363,6 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     }
-  }
-
-  const patchPair = (listKey: 'headers' | 'env', index: number, patch: Partial<DraftPair>) => {
-    setDraft(current => current === null ? null : {
-      ...current,
-      [listKey]: current[listKey].map((p, i) => i === index ? { ...p, ...patch } : p),
-    })
-  }
-
-  const dropPair = (listKey: 'headers' | 'env', index: number) => {
-    setDraft(current => current === null ? null : {
-      ...current,
-      [listKey]: current[listKey].filter((_, i) => i !== index),
-    })
   }
 
   return (
@@ -318,32 +382,14 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
           <div className={css.chooserCard}>
             <p className={css.chooserTitle}>{t('mcp.preset.github')}</p>
             <p className={css.chooserHint}>{t('mcp.preset.githubHint')}</p>
-            <Button
-              variant="primary"
-              size="sm"
-              className={css.chooserAction}
-              onClick={() => {
-                setDraft(githubPresetDraft())
-                setPresetNote(true)
-                setChoosing(false)
-              }}
-            >
+            <Button variant="primary" size="sm" className={css.chooserAction} onClick={() => { openForm(githubPresetDraft(), true) }}>
               {t('mcp.preset.githubAction')}
             </Button>
           </div>
           <div className={css.chooserCard}>
             <p className={css.chooserTitle}>{t('mcp.preset.custom')}</p>
             <p className={css.chooserHint}>{t('mcp.preset.customHint')}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className={css.chooserAction}
-              onClick={() => {
-                setDraft(emptyDraft())
-                setPresetNote(false)
-                setChoosing(false)
-              }}
-            >
+            <Button variant="outline" size="sm" className={css.chooserAction} onClick={() => { openForm(emptyDraft(), false) }}>
               {t('mcp.preset.customAction')}
             </Button>
           </div>
@@ -366,7 +412,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                 </span>
                 {draft === null ? (
                   <span className={css.cardActions}>
-                    <Button variant="outline" size="sm" onClick={() => { setPresetNote(false); setDraft(toDraft(server)) }}>{t('mcp.edit')}</Button>
+                    <Button variant="outline" size="sm" onClick={() => { openForm(toDraft(server), false) }}>{t('mcp.edit')}</Button>
                     <Button variant="ghost" size="sm" onClick={() => { void remove(server) }}>{t('mcp.remove')}</Button>
                   </span>
                 ) : null}
@@ -381,138 +427,162 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
 
       {draft !== null ? (
         <div className={css.form}>
-          {presetNote ? <p className={css.note}>{t('mcp.preset.githubTokenNote')}</p> : null}
-          <div className={css.formGrid}>
-            <label className={css.field}>
-              <span className={css.label}>{t('mcp.serverName')}</span>
-              <input
-                className={css.input}
-                value={draft.serverName}
-                aria-label={t('mcp.serverName')}
-                onChange={(event) => { setDraft({ ...draft, serverName: event.target.value }) }}
-              />
-            </label>
-            <label className={css.field}>
-              <span className={css.label}>{t('mcp.idLabel')}</span>
-              <input
-                className={css.input}
-                value={draft.id}
-                placeholder={`mcp-${draft.serverName}`}
-                aria-label={t('mcp.idLabel')}
-                onChange={(event) => { setDraft({ ...draft, id: event.target.value }) }}
-              />
-            </label>
-            <label className={css.field}>
-              <span className={css.label}>{t('mcp.transport')}</span>
-              <select
-                className={css.input}
-                value={draft.transport}
-                aria-label={t('mcp.transport')}
-                onChange={(event) => {
-                  setDraft({
-                    ...draft,
-                    transport: event.target.value === 'stdio' ? 'stdio' : 'streamable-http',
-                  })
-                }}
+          <div className={css.formHeader}>
+            <span className={css.formTitle}>{t('mcp.add')}</span>
+            <div className={css.segToggle}>
+              <button
+                type="button"
+                aria-pressed={editorMode === 'form'}
+                className={`${css.segBtn} ${editorMode === 'form' ? css.segActive : ''}`}
+                onClick={() => { switchMode('form') }}
               >
-                <option value="streamable-http">{t('mcp.transportHttp')}</option>
-                <option value="stdio">{t('mcp.transportStdio')}</option>
-              </select>
-            </label>
-            {draft.transport === 'streamable-http' ? (
-              <label className={css.field}>
-                <span className={css.label}>{t('mcp.url')}</span>
-                <input
-                  className={css.input}
-                  value={draft.url}
-                  aria-label={t('mcp.url')}
-                  onChange={(event) => { setDraft({ ...draft, url: event.target.value }) }}
-                />
-              </label>
-            ) : null}
+                {t('mcp.formMode')}
+              </button>
+              <button
+                type="button"
+                aria-pressed={editorMode === 'json'}
+                className={`${css.segBtn} ${editorMode === 'json' ? css.segActive : ''}`}
+                onClick={() => { switchMode('json') }}
+              >
+                {t('mcp.jsonMode')}
+              </button>
+            </div>
           </div>
 
-          {draft.transport === 'streamable-http' ? (
-            <div className={css.group}>
-              <div className={css.groupHeader}>
-                <span className={css.label}>{t('mcp.headers')}</span>
-                <Button variant="ghost" size="sm" onClick={() => { setDraft({ ...draft, headers: [...draft.headers, emptyPair()] }) }}>
-                  {t('mcp.addRow')}
-                </Button>
+          {presetNote ? <p className={css.note}>{t('mcp.preset.githubTokenNote')}</p> : null}
+
+          {editorMode === 'form' ? (
+            <div className={css.formBody}>
+              <div className={css.formGrid}>
+                <label className={css.field}>
+                  <span className={css.label}>{t('mcp.serverName')}</span>
+                  <input
+                    className={css.input}
+                    value={draft.serverName}
+                    aria-label={t('mcp.serverName')}
+                    onChange={(event) => { setDraft({ ...draft, serverName: event.target.value }) }}
+                  />
+                </label>
+                <label className={css.field}>
+                  <span className={css.label}>{t('mcp.idLabel')}</span>
+                  <input
+                    className={css.input}
+                    value={draft.id}
+                    placeholder={`mcp-${draft.serverName}`}
+                    aria-label={t('mcp.idLabel')}
+                    onChange={(event) => { setDraft({ ...draft, id: event.target.value }) }}
+                  />
+                </label>
+                <label className={css.field}>
+                  <span className={css.label}>{t('mcp.transport')}</span>
+                  <select
+                    className={css.input}
+                    value={draft.transport}
+                    aria-label={t('mcp.transport')}
+                    onChange={(event) => {
+                      setDraft({
+                        ...draft,
+                        transport: event.target.value === 'stdio' ? 'stdio' : 'streamable-http',
+                      })
+                    }}
+                  >
+                    <option value="streamable-http">{t('mcp.transportHttp')}</option>
+                    <option value="stdio">{t('mcp.transportStdio')}</option>
+                  </select>
+                </label>
+                <label className={css.field}>
+                  <span className={css.label}>{t('mcp.timeoutMs')}</span>
+                  <input
+                    className={css.input}
+                    type="number"
+                    min={1}
+                    value={draft.timeoutMs}
+                    placeholder="60000"
+                    aria-label={t('mcp.timeoutMs')}
+                    onChange={(event) => { setDraft({ ...draft, timeoutMs: event.target.value }) }}
+                  />
+                </label>
+                {draft.transport === 'streamable-http' ? (
+                  <label className={css.field}>
+                    <span className={css.label}>{t('mcp.url')}</span>
+                    <input
+                      className={css.input}
+                      value={draft.url}
+                      placeholder="https://mcp.example.com/mcp"
+                      aria-label={t('mcp.url')}
+                      onChange={(event) => { setDraft({ ...draft, url: event.target.value }) }}
+                    />
+                  </label>
+                ) : (
+                  <>
+                    <label className={css.field}>
+                      <span className={css.label}>{t('mcp.command')}</span>
+                      <input
+                        className={css.input}
+                        value={draft.command}
+                        aria-label={t('mcp.command')}
+                        onChange={(event) => { setDraft({ ...draft, command: event.target.value }) }}
+                      />
+                    </label>
+                    <label className={css.field}>
+                      <span className={css.label}>{t('mcp.args')}</span>
+                      <input
+                        className={css.input}
+                        value={draft.args}
+                        aria-label={t('mcp.args')}
+                        onChange={(event) => { setDraft({ ...draft, args: event.target.value }) }}
+                      />
+                    </label>
+                  </>
+                )}
               </div>
-              <PairHeaders t={t} />
-              {draft.headers.map((pair, index) => (
-                <PairRow
-                  key={index}
-                  pair={pair}
-                  label={t('mcp.headers')}
-                  t={t}
-                  onPatch={(patch) => { patchPair('headers', index, patch) }}
-                  onRemove={() => { dropPair('headers', index) }}
+              <div className={css.group}>
+                <span className={css.labelStrong}>{t('mcp.headers')}</span>
+                <textarea
+                  className={css.jsonArea}
+                  value={draft.headersJson}
+                  spellCheck={false}
+                  placeholder={'{\n  "Authorization": "Bearer your-token"\n}'}
+                  aria-label={t('mcp.headers')}
+                  onChange={(event) => { setDraft({ ...draft, headersJson: event.target.value }) }}
                 />
-              ))}
+                <p className={css.fieldHint}>{t('mcp.headersHint')}</p>
+              </div>
+              {draft.transport === 'stdio' ? (
+                <div className={css.group}>
+                  <span className={css.labelStrong}>{t('mcp.env')}</span>
+                  <textarea
+                    className={css.jsonArea}
+                    value={draft.envJson}
+                    spellCheck={false}
+                    aria-label={t('mcp.env')}
+                    onChange={(event) => { setDraft({ ...draft, envJson: event.target.value }) }}
+                  />
+                  <p className={css.fieldHint}>{t('mcp.envHint')}</p>
+                </div>
+              ) : null}
             </div>
           ) : (
-            <div className={css.formGrid}>
-              <label className={css.field}>
-                <span className={css.label}>{t('mcp.command')}</span>
-                <input
-                  className={css.input}
-                  value={draft.command}
-                  aria-label={t('mcp.command')}
-                  onChange={(event) => { setDraft({ ...draft, command: event.target.value }) }}
-                />
-              </label>
-              <label className={css.field}>
-                <span className={css.label}>{t('mcp.args')}</span>
-                <input
-                  className={css.input}
-                  value={draft.args}
-                  aria-label={t('mcp.args')}
-                  onChange={(event) => { setDraft({ ...draft, args: event.target.value }) }}
-                />
-              </label>
-              <label className={css.field}>
-                <span className={css.label}>{t('mcp.cwd')}</span>
-                <input
-                  className={css.input}
-                  value={draft.cwd}
-                  aria-label={t('mcp.cwd')}
-                  onChange={(event) => { setDraft({ ...draft, cwd: event.target.value }) }}
-                />
-              </label>
+            <div className={css.formBody}>
+              <span className={css.labelStrong}>{t('mcp.jsonFull')}</span>
+              <textarea
+                className={css.jsonArea}
+                value={jsonText}
+                spellCheck={false}
+                aria-label={t('mcp.jsonFull')}
+                onChange={(event) => { setJsonText(event.target.value) }}
+              />
+              <p className={css.fieldHint}>{t('mcp.jsonHint')}</p>
             </div>
           )}
 
-          {draft.transport === 'stdio' ? (
-            <div className={css.group}>
-              <div className={css.groupHeader}>
-                <span className={css.label}>{t('mcp.env')}</span>
-                <Button variant="ghost" size="sm" onClick={() => { setDraft({ ...draft, env: [...draft.env, emptyPair()] }) }}>
-                  {t('mcp.addRow')}
-                </Button>
-              </div>
-              <PairHeaders t={t} />
-              {draft.env.map((pair, index) => (
-                <PairRow
-                  key={index}
-                  pair={pair}
-                  label={t('mcp.env')}
-                  t={t}
-                  onPatch={(patch) => { patchPair('env', index, patch) }}
-                  onRemove={() => { dropPair('env', index) }}
-                />
-              ))}
-            </div>
-          ) : null}
-
           <div className={css.formActions}>
-            <Button variant="ghost" size="md" onClick={() => { setPresetNote(false); setDraft(null) }}>{t('mcp.cancel')}</Button>
+            <Button variant="ghost" size="md" onClick={closeForm}>{t('mcp.cancel')}</Button>
             <Button
               variant="primary"
               size="md"
               disabled={status.kind === 'saving'}
-              onClick={() => { void save(draft) }}
+              onClick={() => { void saveCurrent() }}
             >
               {status.kind === 'saving' ? t('mcp.saving') : t('mcp.save')}
             </Button>
