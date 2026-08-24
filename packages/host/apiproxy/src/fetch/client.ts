@@ -19,6 +19,9 @@ import {
   hostUpdateCheckValueSchema,
 } from '../api/host.schema.ts'
 import {
+  mcpListServersValueSchema, mcpRemoveServerValueSchema, mcpStatusValueSchema, mcpUpsertServerValueSchema,
+} from '../api/mcp.schema.ts'
+import {
   sessionCancelValueSchema,
   sessionAttachmentValueSchema,
   sessionCreateValueSchema,
@@ -163,6 +166,12 @@ export interface IApiClient {
     models(payload: RequestPayload<'llm.models'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.models'>>>
     discoverModels(payload: RequestPayload<'llm.discoverModels'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'llm.discoverModels'>>>
   }
+  mcp: {
+    listServers(payload: RequestPayload<'mcp.listServers'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.listServers'>>>
+    upsertServer(payload: RequestPayload<'mcp.upsertServer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.upsertServer'>>>
+    removeServer(payload: RequestPayload<'mcp.removeServer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.removeServer'>>>
+    status(payload: RequestPayload<'mcp.status'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.status'>>>
+  }
   /** client-response passthrough (rpcId is a backfill of the server-request's id — never minted here). */
   respond(message: ClientResponse, signal?: AbortSignal): Promise<RpcReceipt>
 }
@@ -194,6 +203,10 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'host.createDirectory': hostCreateDirectoryValueSchema,
   'host.openPath': hostOpenPathValueSchema,
   'host.updateCheck': hostUpdateCheckValueSchema,
+  'mcp.listServers': mcpListServersValueSchema,
+  'mcp.upsertServer': mcpUpsertServerValueSchema,
+  'mcp.removeServer': mcpRemoveServerValueSchema,
+  'mcp.status': mcpStatusValueSchema,
   'workspace.list': workspaceListValueSchema,
   'workspace.create': workspaceCreateValueSchema,
   'workspace.rename': workspaceRenameValueSchema,
@@ -445,6 +458,13 @@ export abstract class AbstractApiClient implements IApiClient {
     createDirectory: (payload, signal) => this.callUnary('host.createDirectory', payload, signal),
     openPath: (payload, signal) => this.callUnary('host.openPath', payload, signal),
     updateCheck: (payload, signal) => this.callUnary('host.updateCheck', payload, signal),
+  }
+
+  readonly mcp: IApiClient['mcp'] = {
+    listServers: (payload, signal) => this.callUnary('mcp.listServers', payload, signal),
+    upsertServer: (payload, signal) => this.callUnary('mcp.upsertServer', payload, signal),
+    removeServer: (payload, signal) => this.callUnary('mcp.removeServer', payload, signal),
+    status: (payload, signal) => this.callUnary('mcp.status', payload, signal),
   }
 
   readonly workspace: IApiClient['workspace'] = {

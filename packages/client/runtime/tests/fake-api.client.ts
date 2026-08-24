@@ -186,6 +186,15 @@ export class FakeApiClient implements IApiClient {
     }))),
   }
 
+  readonly mcp: IApiClient['mcp'] = {
+    listServers: (payload: unknown) => this.record('mcp.listServers', payload, Promise.resolve(ok({
+      servers: [], filePath: '/fake/cordis.patch.yml',
+    }))),
+    upsertServer: (payload: unknown) => this.record('mcp.upsertServer', payload, Promise.resolve(ok({ servers: [] }))),
+    removeServer: (payload: unknown) => this.record('mcp.removeServer', payload, Promise.resolve(ok({ servers: [] }))),
+    status: (payload: unknown) => this.record('mcp.status', payload, Promise.resolve(ok({ statuses: [] }))),
+  }
+
   // The archive-set field defaults at the binding below so list stubs keep
   // the pre-archive `{ items }` shape; a stub carrying the field wins.
   onWorkspaceList: (payload: unknown) => Promise<RpcResponse<{ items: never[]; archivedSessionIds?: never[] }>> =

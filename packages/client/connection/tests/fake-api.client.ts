@@ -152,6 +152,15 @@ export class FakeApiClient implements IApiClient {
     }))),
   }
 
+  readonly mcp: IApiClient['mcp'] = {
+    listServers: payload => this.record('mcp.listServers', payload, Promise.resolve(ok({
+      servers: [], filePath: '/fake/cordis.patch.yml',
+    }))),
+    upsertServer: payload => this.record('mcp.upsertServer', payload, Promise.resolve(ok({ servers: [] }))),
+    removeServer: payload => this.record('mcp.removeServer', payload, Promise.resolve(ok({ servers: [] }))),
+    status: payload => this.record('mcp.status', payload, Promise.resolve(ok({ statuses: [] }))),
+  }
+
   readonly workspace: IApiClient['workspace'] = {
     list: (payload: unknown) => this.record('workspace.list', payload, Promise.resolve(ok({ items: [], archivedSessionIds: [] }))),
     create: (payload: unknown) => this.record('workspace.create', payload, Promise.resolve(ok({

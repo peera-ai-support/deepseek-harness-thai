@@ -24,6 +24,8 @@ import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
 import { AboutSection } from './AboutSection.tsx'
 import type { AboutSectionInjected } from './AboutSection.tsx'
+import { McpSection } from './McpSection.tsx'
+import type { McpSectionInjected } from './McpSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
@@ -38,6 +40,9 @@ export type {
 export type {
   AboutSectionComponentProps, AboutSectionInjected,
 } from './AboutSection.tsx'
+export type {
+  McpSectionComponentProps, McpSectionInjected,
+} from './McpSection.tsx'
 export type { SettingsDocumentActionInjected, SettingsDocumentActionProps } from './SettingsDocumentAction.tsx'
 export type { SettingsDocumentState } from './settings-document-store.ts'
 export { SettingsDocumentStore } from './settings-document-store.ts'
@@ -187,4 +192,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): AboutSectionInjected => ({ connection }),
   }, AboutSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'mcp',
+    order: 20,
+    label: () => t('mcp.nav'),
+    locale: NS,
+    inject: (): McpSectionInjected => ({ connection }),
+  }, McpSection))
 }

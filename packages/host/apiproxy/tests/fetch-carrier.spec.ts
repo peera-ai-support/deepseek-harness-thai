@@ -166,6 +166,20 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         }
       },
     },
+    mcp: {
+      async listServers(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { servers: [], filePath: '/w/cordis.patch.yml' } } }
+      },
+      async upsertServer(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { servers: [] } } }
+      },
+      async removeServer(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { servers: [] } } }
+      },
+      async status(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { statuses: [] } } }
+      },
+    },
     workspace: {
       async list(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { items: [], archivedSessionIds: [] } } }

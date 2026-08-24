@@ -21,6 +21,7 @@ function scriptedApi(overrides: {
   sessions?: Partial<ApiProxy['sessions']>
   subagents?: Partial<ApiProxy['subagents']>
   host?: Partial<ApiProxy['host']>
+  mcp?: Partial<ApiProxy['mcp']>
   skills?: Partial<ApiProxy['skills']>
   agentPresets?: Partial<ApiProxy['agentPresets']>
   events?: Partial<ApiProxy['events']>
@@ -82,6 +83,13 @@ function scriptedApi(overrides: {
         currentVersion: '0-test', latestVersion: null, updateAvailable: false, repoRoot: '/t',
       }),
       ...overrides.host,
+    },
+    mcp: {
+      listServers: r => ok(r, { servers: [], filePath: '/t/cordis.patch.yml' }),
+      upsertServer: r => ok(r, { servers: [] }),
+      removeServer: r => ok(r, { servers: [] }),
+      status: r => ok(r, { statuses: [] }),
+      ...overrides.mcp,
     },
     workspace: {
       list: r => ok(r, { items: [], archivedSessionIds: [] }),

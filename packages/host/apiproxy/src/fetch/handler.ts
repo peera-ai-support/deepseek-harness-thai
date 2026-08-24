@@ -35,6 +35,9 @@ import {
   hostPickDirectoryRequestSchema, hostUpdateCheckRequestSchema,
 } from '../api/host.schema.ts'
 import {
+  mcpListServersRequestSchema, mcpRemoveServerRequestSchema, mcpStatusRequestSchema, mcpUpsertServerRequestSchema,
+} from '../api/mcp.schema.ts'
+import {
   workspaceArchiveSessionRequestSchema,
   workspaceCreateRequestSchema,
   workspaceDeleteRequestSchema,
@@ -110,6 +113,10 @@ const UNARY_ROUTES: UnaryRoutes = {
   'host.createDirectory': { schema: hostCreateDirectoryRequestSchema, invoke: (api, r) => api.host.createDirectory(r) },
   'host.openPath': { schema: hostOpenPathRequestSchema, invoke: (api, r, signal) => api.host.openPath(r, signal) },
   'host.updateCheck': { schema: hostUpdateCheckRequestSchema, invoke: (api, r, signal) => api.host.updateCheck(r, signal) },
+  'mcp.listServers': { schema: mcpListServersRequestSchema, invoke: (api, r) => api.mcp.listServers(r) },
+  'mcp.upsertServer': { schema: mcpUpsertServerRequestSchema, invoke: (api, r) => api.mcp.upsertServer(r) },
+  'mcp.removeServer': { schema: mcpRemoveServerRequestSchema, invoke: (api, r) => api.mcp.removeServer(r) },
+  'mcp.status': { schema: mcpStatusRequestSchema, invoke: (api, r) => api.mcp.status(r) },
   'workspace.list': { schema: workspaceListRequestSchema, invoke: (api, r) => api.workspace.list(r) },
   'workspace.create': { schema: workspaceCreateRequestSchema, invoke: (api, r) => api.workspace.create(r) },
   'workspace.rename': { schema: workspaceRenameRequestSchema, invoke: (api, r) => api.workspace.rename(r) },

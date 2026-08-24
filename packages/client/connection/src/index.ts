@@ -110,6 +110,12 @@ const PRIVILEGED_METHODS = new Set([
   // Runs git fetch (a network fetch that advances remote-tracking refs) and
   // reports repo/version facts; loopback-pinned like the other host-fact methods.
   'host.updateCheck',
+  // Reads and rewrites the home-level user patch file ($DSH_HOME/cordis.patch.yml),
+  // which every dsh profile composes — the same trust class as settings.* writes.
+  'mcp.listServers',
+  'mcp.upsertServer',
+  'mcp.removeServer',
+  'mcp.status',
   'settings.describe',
   'settings.openDocument',
   'settings.update',

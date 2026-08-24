@@ -15,8 +15,13 @@ import { z as zod } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
+import {
+  loadMcpPatch, mcpPatchPath, McpConfigError, parseMcpPatch, rebuildMcpPatchText, storeMcpPatch, validateServerEntry,
+} from './mcp-config.ts'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
+// Type-only: merges ctx.mcpStatus (the live mcp-client status store) onto Context.
+import type {} from '@deepseek-ai/dsh-mcp-client'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
@@ -3249,6 +3254,72 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         } catch (error: unknown) {
           return err(request, { code: 'internal', message: `skill listing failed: ${String(error)}`, details: {} })
         }
+      },
+    },
+
+    mcp: {
+      listServers(request) {
+        try {
+          const text = loadMcpPatch()
+          return Promise.resolve(ok(request, { servers: parseMcpPatch(text), filePath: mcpPatchPath() }))
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'mcp-config-parse',
+            message: `reading MCP config failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          }))
+        }
+      },
+
+      upsertServer(request) {
+        const { server } = request.payload
+        let text: string
+        try {
+          text = loadMcpPatch()
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'mcp-config-parse',
+            message: `reading MCP config failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          }))
+        }
+        try {
+          // Validation sees the other live rows only: an upsert replaces its own id.
+          validateServerEntry(server, parseMcpPatch(text).filter(existing => existing.id !== server.id))
+          const next = [...parseMcpPatch(text).filter(existing => existing.id !== server.id), server]
+          storeMcpPatch(rebuildMcpPatchText(text, next))
+        } catch (error: unknown) {
+          if (error instanceof McpConfigError) {
+            return Promise.resolve(err(request, { code: 'mcp-config-invalid', message: error.message, details: {} }))
+          }
+          return Promise.resolve(err(request, {
+            code: 'mcp-file-write-failed',
+            message: `writing MCP config failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          }))
+        }
+        return Promise.resolve(ok(request, { servers: parseMcpPatch(loadMcpPatch()) }))
+      },
+
+      removeServer(request) {
+        try {
+          const text = loadMcpPatch()
+          const current = parseMcpPatch(text)
+          const next = current.filter(server => server.id !== request.payload.id)
+          storeMcpPatch(rebuildMcpPatchText(text, next))
+          return Promise.resolve(ok(request, { servers: parseMcpPatch(loadMcpPatch()) }))
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'mcp-file-write-failed',
+            message: `writing MCP config failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          }))
+        }
+      },
+
+      status(request) {
+        const store = ctx.mcpStatus
+        return Promise.resolve(ok(request, { statuses: store?.snapshot() ?? [] }))
       },
     },
 

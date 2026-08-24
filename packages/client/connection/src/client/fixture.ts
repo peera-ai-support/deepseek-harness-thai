@@ -2660,6 +2660,12 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         currentVersion: '0.0.0-fixture', latestVersion: null, updateAvailable: false, repoRoot: '/tmp/fixture',
       }),
     },
+    mcp: {
+      listServers: request => ok(request, { servers: [], filePath: `${FIXTURE_HOME}/.dsh/cordis.patch.yml` }),
+      upsertServer: request => ok(request, { servers: [] }),
+      removeServer: request => ok(request, { servers: [] }),
+      status: request => ok(request, { statuses: [] }),
+    },
     workspace: {
       list: request => ok(request, {
         items: workspaces.map(w => ({ ...w })),
@@ -3200,6 +3206,10 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.createDirectory': return this.api.host.createDirectory(request)
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
       case 'host.updateCheck': return this.api.host.updateCheck(request, new AbortController().signal)
+      case 'mcp.listServers': return this.api.mcp.listServers(request)
+      case 'mcp.upsertServer': return this.api.mcp.upsertServer(request)
+      case 'mcp.removeServer': return this.api.mcp.removeServer(request)
+      case 'mcp.status': return this.api.mcp.status(request)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

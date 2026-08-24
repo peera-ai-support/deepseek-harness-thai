@@ -51,6 +51,12 @@ export interface RpcErrorDetailsMap {
   'not-a-git-checkout': { repoRoot?: string }
   /** `git fetch` failed (network, credentials, or a malformed repo); the message carries git's own text. */
   'git-fetch-failed': {}
+  /** The home-level user patch file could not be read or parsed; the message names the file. */
+  'mcp-config-parse': {}
+  /** A server row failed validation or uniqueness (see message); nothing was written. */
+  'mcp-config-invalid': {}
+  /** Writing the home-level user patch file failed; the message names the file. */
+  'mcp-file-write-failed': {}
   'agent-preset-read-only': { agentPreset: string; reason: string }
   'agent-preset-locked': { sessionId: SessionId; agentPreset: string }
   'agent-preset-conflict': { sessionId: SessionId; requestedPreset: string; existingPreset?: string }

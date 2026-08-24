@@ -6,6 +6,7 @@
 
 import type { SessionsApi } from './sessions.ts'
 import type { HostApi } from './host.ts'
+import type { McpApi } from './mcp.ts'
 import type { WorkspaceApi } from './workspace.ts'
 import type { AgentPresetsApi } from './agent-presets.ts'
 import type { SkillsApi } from './skills.ts'
@@ -44,6 +45,10 @@ export interface RpcMethodMap {
   'host.createDirectory': HostApi['createDirectory']
   'host.openPath': HostApi['openPath']
   'host.updateCheck': HostApi['updateCheck']
+  'mcp.listServers': McpApi['listServers']
+  'mcp.upsertServer': McpApi['upsertServer']
+  'mcp.removeServer': McpApi['removeServer']
+  'mcp.status': McpApi['status']
   'workspace.list': WorkspaceApi['list']
   'workspace.create': WorkspaceApi['create']
   'workspace.rename': WorkspaceApi['rename']

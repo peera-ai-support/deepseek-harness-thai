@@ -96,6 +96,12 @@
       "path": "../../subprocess/subprocess"
     },
     {
+      "path": "../../mcp/mcp-client"
+    },
+    {
+      "path": "../../util/home-paths"
+    },
+    {
       "path": "../../extensions/cordis-host-runner"
     },
     {
