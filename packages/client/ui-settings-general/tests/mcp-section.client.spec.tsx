@@ -203,7 +203,7 @@ describe('McpSection', () => {
     fireEvent.change(await screen.findByLabelText('GitHub personal access token (PAT)'), {
       target: { value: 'ghp_paste_here_123456789012' },
     })
-    fireEvent.click(screen.getByText('Install in one click'))
+    fireEvent.click(screen.getAllByText('Install in one click')[0]!)
     await waitFor(() => { expect(api.importSecret).toHaveBeenCalledTimes(1) })
     expect(api.importSecret).toHaveBeenCalledWith({
       name: 'DSH_MCP_GITHUB_AUTHORIZATION',
@@ -217,6 +217,36 @@ describe('McpSection', () => {
       { name: 'Authorization', value: { kind: 'env', env: 'DSH_MCP_GITHUB_AUTHORIZATION' } },
     ])
     expect(await screen.findByText(/Installed: github/)).toBeTruthy()
+  })
+
+  it('installs the memory preset with one click and no input', async () => {
+    const { api } = mount([])
+    const installers = (await screen.findAllByText('Install in one click'))
+      .map(node => node.closest('button'))
+      .filter((button): button is HTMLButtonElement => button !== null && !button.disabled)
+    fireEvent.click(installers[0]!)
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    const entry = firstUpsert(api).server
+    expect(entry.id).toBe('mcp-memory')
+    expect(entry.command).toBe('npx')
+    expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-memory'])
+    expect(entry.env[0]!.name).toBe('MEMORY_FILE_PATH')
+    expect((entry.env[0]!.value as { value: string }).value).toContain('mcp-memory.jsonl')
+  })
+
+  it('installs the filesystem preset with just a folder path', async () => {
+    const { api } = mount([])
+    fireEvent.change(await screen.findByLabelText('Folder for the model to access (full path)'), {
+      target: { value: 'C:\Users\me\docs' },
+    })
+    const installers = (await screen.findAllByText('Install in one click'))
+      .map(node => node.closest('button'))
+      .filter((button): button is HTMLButtonElement => button !== null && !button.disabled)
+    fireEvent.click(installers[installers.length - 1]!)
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    const entry = firstUpsert(api).server
+    expect(entry.id).toBe('mcp-filesystem')
+    expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', 'C:\Users\me\docs'])
   })
 
   it('edits and removes a server through the mcp RPC', async () => {

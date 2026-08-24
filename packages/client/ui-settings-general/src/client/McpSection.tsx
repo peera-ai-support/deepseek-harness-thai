@@ -6,6 +6,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
 import type { McpHeaderOrEnv, McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
 import { GitHubIcon } from './GitHubIcon.tsx'
+import { FolderIcon, MemoryIcon } from './catalog-icons.tsx'
 import css from './McpSection.module.css'
 
 /** Registrant-owned dependencies of {@link McpSection}. */
@@ -62,16 +63,29 @@ interface QuickPreset {
   id: string
   serverName: string
   transport: 'streamable-http' | 'stdio'
-  url: string
+  url?: string
   command?: string
   args?: string[]
   headerName: string
   envName: string
   /** Brand mark shown as the catalog icon. */
   icon: ({ size }: { size?: number }) => React.JSX.Element
-  titleKey: 'mcp.quick.title.mcp-github'
-  hintKey: 'mcp.quick.hint.mcp-github'
-  tokenKey: 'mcp.quick.tokenLabel.mcp-github'
+  /** Optional additional text input shown on the card (e.g. a folder path). */
+  extraTextLabelKey?: 'mcp.quick.pathLabel.filesystem'
+  /** Extra env built from the user's home directory (e.g. a memory file path). */
+  buildEnv?: (homeDir: string) => McpHeaderOrEnv[]
+  /** Whether the extra text input is required before install. */
+  requiresExtraText?: boolean
+  titleKey:
+    | 'mcp.quick.title.mcp-github'
+    | 'mcp.quick.title.mcp-memory'
+    | 'mcp.quick.title.mcp-filesystem'
+  hintKey:
+    | 'mcp.quick.hint.mcp-github'
+    | 'mcp.quick.hint.mcp-memory'
+    | 'mcp.quick.hint.mcp-filesystem'
+  tokenKey?:
+    | 'mcp.quick.tokenLabel.mcp-github'
 }
 
 /** Predefined quick-install presets. Add a row here (plus its locale keys) to offer another server. */
@@ -88,18 +102,54 @@ const QUICK_PRESETS: readonly QuickPreset[] = [
     hintKey: 'mcp.quick.hint.mcp-github',
     tokenKey: 'mcp.quick.tokenLabel.mcp-github',
   },
+  {
+    id: 'mcp-memory',
+    serverName: 'memory',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-memory'],
+    headerName: '',
+    envName: '',
+    icon: MemoryIcon,
+    buildEnv: homeDir => [{
+      name: 'MEMORY_FILE_PATH',
+      value: { kind: 'literal', value: `${homeDir}\mcp-memory.jsonl` },
+    }],
+    titleKey: 'mcp.quick.title.mcp-memory',
+    hintKey: 'mcp.quick.hint.mcp-memory',
+  },
+  {
+    id: 'mcp-filesystem',
+    serverName: 'filesystem',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem'],
+    headerName: '',
+    envName: '',
+    icon: FolderIcon,
+    extraTextLabelKey: 'mcp.quick.pathLabel.filesystem',
+    requiresExtraText: true,
+    titleKey: 'mcp.quick.title.mcp-filesystem',
+    hintKey: 'mcp.quick.hint.mcp-filesystem',
+  },
 ]
 
-/** The ready-made entry for one preset with the user's token held in the user environment. */
-function quickEntry(preset: QuickPreset): McpServerEntry {
+/** The ready-made entry for one preset with either a token-held header, a path argument, or nothing. */
+function quickEntry(preset: QuickPreset, homeDir: string, extraText = ''): McpServerEntry {
+  const args = [...(preset.args ?? [])]
+  if (preset.extraTextLabelKey !== undefined && extraText.trim() !== '') {
+    args.push(extraText.trim())
+  }
   return {
     id: preset.id,
     serverName: preset.serverName,
     transport: preset.transport,
     ...(preset.transport === 'streamable-http' ? { url: preset.url } : {}),
-    headers: [{ name: preset.headerName, value: { kind: 'env', env: preset.envName } }],
-    args: preset.args ?? [],
-    env: [],
+    headers: preset.headerName === ''
+      ? []
+      : [{ name: preset.headerName, value: { kind: 'env', env: preset.envName } }],
+    args,
+    env: preset.buildEnv === undefined ? [] : preset.buildEnv(homeDir),
     extra: [],
     ...(preset.command !== undefined ? { command: preset.command } : {}),
   }
@@ -289,6 +339,8 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [quickToken, setQuickToken] = useState('')
   /** Quick-install in-flight marker. */
   const [quickBusy, setQuickBusy] = useState(false)
+  /** Extra text input for catalog presets (e.g. the filesystem folder path). */
+  const [quickPath, setQuickPath] = useState('')
 
   const load = async () => {
     setStatus({ kind: 'loading' })
@@ -449,25 +501,34 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     }
   }
 
-  /** Install or update a ready-made preset: store the token, then upsert the whole predefined row. */
+  /** Install or update a ready-made preset: store any token, then upsert the whole predefined row. */
   const quickInstall = async (preset: QuickPreset) => {
-    const token = quickToken.trim()
-    if (token === '') return
+    if (preset.tokenKey !== undefined && quickToken.trim() === '') return
+    if (preset.requiresExtraText === true && quickPath.trim() === '') return
+    const homeDir = filePath.replace(/[\/][^\/]*$/, '')
     setQuickBusy(true)
     try {
-      const secret = await connection.api.mcp.importSecret({ name: preset.envName, value: `Bearer ${token}` })
-      if (!secret.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: secret.result.error.message }) })
-        return
+      if (preset.tokenKey !== undefined) {
+        const secret = await connection.api.mcp.importSecret({
+          name: preset.envName,
+          value: `Bearer ${quickToken.trim()}`,
+        })
+        if (!secret.result.ok) {
+          setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: secret.result.error.message }) })
+          return
+        }
       }
-      const response = await connection.api.mcp.upsertServer({ server: quickEntry(preset) })
+      const response = await connection.api.mcp.upsertServer({ server: quickEntry(preset, homeDir, quickPath) })
       if (!response.result.ok) {
         setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
         return
       }
       setServers(response.result.value.servers)
       setQuickToken('')
-      setSecretNote(t('mcp.quickInstalled', { server: preset.serverName, env: preset.envName }))
+      setQuickPath('')
+      setSecretNote(preset.tokenKey !== undefined
+        ? t('mcp.quickInstalled', { server: preset.serverName, env: preset.envName })
+        : '')
       setStatus({ kind: 'saved' })
       void loadStatus()
     } catch (error: unknown) {
@@ -500,18 +561,31 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
             </div>
             <p className={css.quickHint}>{t(preset.hintKey)}</p>
             <div className={css.quickFields}>
-              <input
-                className={css.input}
-                type="password"
-                value={quickToken}
-                placeholder={t(preset.tokenKey)}
-                aria-label={t(preset.tokenKey)}
-                onChange={(event) => { setQuickToken(event.target.value) }}
-              />
+              {preset.tokenKey !== undefined ? (
+                <input
+                  className={css.input}
+                  type="password"
+                  value={quickToken}
+                  placeholder={t(preset.tokenKey)}
+                  aria-label={t(preset.tokenKey)}
+                  onChange={(event) => { setQuickToken(event.target.value) }}
+                />
+              ) : null}
+              {preset.extraTextLabelKey !== undefined ? (
+                <input
+                  className={css.input}
+                  value={quickPath}
+                  placeholder={t(preset.extraTextLabelKey)}
+                  aria-label={t(preset.extraTextLabelKey)}
+                  onChange={(event) => { setQuickPath(event.target.value) }}
+                />
+              ) : null}
               <Button
                 variant="primary"
                 size="md"
-                disabled={quickBusy || quickToken.trim() === ''}
+                disabled={quickBusy
+                  || (preset.tokenKey !== undefined && quickToken.trim() === '')
+                  || (preset.requiresExtraText === true && quickPath.trim() === '')}
                 onClick={() => { void quickInstall(preset) }}
               >
                 {installed ? t('mcp.quick.updateAction') : t('mcp.quick.action')}
