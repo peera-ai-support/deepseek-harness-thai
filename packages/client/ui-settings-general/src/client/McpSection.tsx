@@ -113,7 +113,7 @@ const QUICK_PRESETS: readonly QuickPreset[] = [
     icon: MemoryIcon,
     buildEnv: homeDir => [{
       name: 'MEMORY_FILE_PATH',
-      value: { kind: 'literal', value: `${homeDir}\mcp-memory.jsonl` },
+      value: { kind: 'literal', value: `${homeDir}\\mcp-memory.jsonl` },
     }],
     titleKey: 'mcp.quick.title.mcp-memory',
     hintKey: 'mcp.quick.hint.mcp-memory',
@@ -153,6 +153,12 @@ function quickEntry(preset: QuickPreset, homeDir: string, extraText = ''): McpSe
     extra: [],
     ...(preset.command !== undefined ? { command: preset.command } : {}),
   }
+}
+
+/** Directory part of a path using either separator (paths come from the host, so both OS styles occur). */
+function dirnameOf(pathText: string): string {
+  const index = Math.max(pathText.lastIndexOf('/'), pathText.lastIndexOf(String.fromCharCode(92)))
+  return index < 0 ? pathText : pathText.slice(0, index)
 }
 
 function emptyDraft(): Draft {
@@ -505,7 +511,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const quickInstall = async (preset: QuickPreset) => {
     if (preset.tokenKey !== undefined && quickToken.trim() === '') return
     if (preset.requiresExtraText === true && quickPath.trim() === '') return
-    const homeDir = filePath.replace(/[\/][^\/]*$/, '')
+    const homeDir = dirnameOf(filePath)
     setQuickBusy(true)
     try {
       if (preset.tokenKey !== undefined) {
@@ -588,7 +594,9 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                   || (preset.requiresExtraText === true && quickPath.trim() === '')}
                 onClick={() => { void quickInstall(preset) }}
               >
-                {installed ? t('mcp.quick.updateAction') : t('mcp.quick.action')}
+                {installed
+                  ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
+                  : t('mcp.quick.action')}
               </Button>
             </div>
           </div>

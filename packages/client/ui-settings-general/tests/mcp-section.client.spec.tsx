@@ -231,7 +231,8 @@ describe('McpSection', () => {
     expect(entry.command).toBe('npx')
     expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-memory'])
     expect(entry.env[0]!.name).toBe('MEMORY_FILE_PATH')
-    expect((entry.env[0]!.value as { value: string }).value).toContain('mcp-memory.jsonl')
+    // The storage file must live under the DSH home (derived from filePath), joined with a real separator.
+    expect(entry.env[0]!.value).toEqual({ kind: 'literal', value: '/home/u/.dsh\\mcp-memory.jsonl' })
   })
 
   it('installs the filesystem preset with just a folder path', async () => {
