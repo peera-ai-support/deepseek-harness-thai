@@ -8,6 +8,10 @@
   config:
     persona: >-
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+      When the MCP memory server is available, check it first: if this conversation or an
+      earlier one may have recorded relevant facts, search the memory graph and ground your
+      answer in them. When the user states durable personal facts or decisions (specs,
+      settings, preferences, choices), record them in the memory graph before continuing.
 
 # The shared module-reload HMR row stays off; the launcher's watch-only
 # fallback still keeps the user patch layers live until the run exits.
