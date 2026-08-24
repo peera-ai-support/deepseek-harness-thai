@@ -87,7 +87,7 @@ function unquoteYamlScalar(text: string): string {
 
 function parseEntryValue(text: string): McpValue {
   const trimmed = text.trim()
-  if (!trimmed.startsWith('!!js')) return { kind: 'literal', value: trimmed }
+  if (!trimmed.startsWith('!!js')) return { kind: 'literal', value: unquoteYamlScalar(trimmed) }
   const expr = trimmed.slice(4).trim()
   const bare = expr.match(/^process\.env\.([A-Za-z_][A-Za-z0-9_]*)$/)
   if (bare !== null && bare[1] !== undefined) {
