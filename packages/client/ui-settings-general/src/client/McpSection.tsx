@@ -56,6 +56,51 @@ function secretEnvName(serverName: string, key: string): string {
   return `DSH_MCP_${clean(serverName)}_${clean(key)}`
 }
 
+/** One ready-made (extension-like) server preset: fill only the token, everything else is predefined. */
+interface QuickPreset {
+  id: string
+  serverName: string
+  transport: 'streamable-http' | 'stdio'
+  url: string
+  command?: string
+  args?: string[]
+  headerName: string
+  envName: string
+  titleKey: 'mcp.quick.title.mcp-github'
+  hintKey: 'mcp.quick.hint.mcp-github'
+  tokenKey: 'mcp.quick.tokenLabel.mcp-github'
+}
+
+/** Predefined quick-install presets. Add a row here (plus its locale keys) to offer another server. */
+const QUICK_PRESETS: readonly QuickPreset[] = [
+  {
+    id: 'mcp-github',
+    serverName: 'github',
+    transport: 'streamable-http',
+    url: 'https://api.githubcopilot.com/mcp/',
+    headerName: 'Authorization',
+    envName: 'DSH_MCP_GITHUB_AUTHORIZATION',
+    titleKey: 'mcp.quick.title.mcp-github',
+    hintKey: 'mcp.quick.hint.mcp-github',
+    tokenKey: 'mcp.quick.tokenLabel.mcp-github',
+  },
+]
+
+/** The ready-made entry for one preset with the user's token held in the user environment. */
+function quickEntry(preset: QuickPreset): McpServerEntry {
+  return {
+    id: preset.id,
+    serverName: preset.serverName,
+    transport: preset.transport,
+    ...(preset.transport === 'streamable-http' ? { url: preset.url } : {}),
+    headers: [{ name: preset.headerName, value: { kind: 'env', env: preset.envName } }],
+    args: preset.args ?? [],
+    env: [],
+    extra: [],
+    ...(preset.command !== undefined ? { command: preset.command } : {}),
+  }
+}
+
 function emptyDraft(): Draft {
   return {
     id: '', serverName: '', transport: 'streamable-http', url: '', command: '',
@@ -236,6 +281,10 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [exportSecrets, setExportSecrets] = useState(true)
   /** Success note listing exported secret names (restart reminder). */
   const [secretNote, setSecretNote] = useState('')
+  /** Quick-install draft: the token the user pasted into the one-field form. */
+  const [quickToken, setQuickToken] = useState('')
+  /** Quick-install in-flight marker. */
+  const [quickBusy, setQuickBusy] = useState(false)
 
   const load = async () => {
     setStatus({ kind: 'loading' })
@@ -396,6 +445,34 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     }
   }
 
+  /** Install or update a ready-made preset: store the token, then upsert the whole predefined row. */
+  const quickInstall = async (preset: QuickPreset) => {
+    const token = quickToken.trim()
+    if (token === '') return
+    setQuickBusy(true)
+    try {
+      const secret = await connection.api.mcp.importSecret({ name: preset.envName, value: `Bearer ${token}` })
+      if (!secret.result.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: secret.result.error.message }) })
+        return
+      }
+      const response = await connection.api.mcp.upsertServer({ server: quickEntry(preset) })
+      if (!response.result.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+        return
+      }
+      setServers(response.result.value.servers)
+      setQuickToken('')
+      setSecretNote(t('mcp.quickInstalled', { server: preset.serverName, env: preset.envName }))
+      setStatus({ kind: 'saved' })
+      void loadStatus()
+    } catch (error: unknown) {
+      setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
+    } finally {
+      setQuickBusy(false)
+    }
+  }
+
   return (
     <div className={css.section}>
       <div className={css.toolbar}>
@@ -407,6 +484,37 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
         ) : null}
       </div>
       {filePath !== '' ? <p className={css.fileLine}>{t('mcp.fileLine', { path: filePath })}</p> : null}
+
+      {QUICK_PRESETS.map((preset) => {
+        const installed = servers.some(s => s.id === preset.id)
+        return (
+          <div key={preset.id} className={css.quick}>
+            <div className={css.quickHeader}>
+              <span className={css.quickTitle}>{t(preset.titleKey)}</span>
+              <span className={css.badge}>{installed ? t('mcp.quick.installedTag') : t('mcp.quick.newTag')}</span>
+            </div>
+            <p className={css.quickHint}>{t(preset.hintKey)}</p>
+            <div className={css.quickFields}>
+              <input
+                className={css.input}
+                type="password"
+                value={quickToken}
+                placeholder={t(preset.tokenKey)}
+                aria-label={t(preset.tokenKey)}
+                onChange={(event) => { setQuickToken(event.target.value) }}
+              />
+              <Button
+                variant="primary"
+                size="md"
+                disabled={quickBusy || quickToken.trim() === ''}
+                onClick={() => { void quickInstall(preset) }}
+              >
+                {installed ? t('mcp.quick.updateAction') : t('mcp.quick.action')}
+              </Button>
+            </div>
+          </div>
+        )
+      })}
 
       {servers.length === 0 && draft === null ? <p className={css.empty}>{t('mcp.empty')}</p> : null}
       <div className={css.list}>

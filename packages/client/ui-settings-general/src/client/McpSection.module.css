@@ -361,3 +361,38 @@ select.input option {
   flex-direction: column;
   gap: 4px;
 }
+
+.quick {
+  border: 1px solid var(--dsw-alias-border-l);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.quickHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quickTitle {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.quickHint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.quickFields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

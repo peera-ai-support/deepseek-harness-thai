@@ -198,6 +198,27 @@ describe('McpSection', () => {
     expect(header).toEqual({ name: 'X-Mode', value: { kind: 'literal', value: 'quiet' } })
   })
 
+  it('installs a ready-made preset from just a token', async () => {
+    const { api } = mount([])
+    fireEvent.change(await screen.findByLabelText('GitHub personal access token (PAT)'), {
+      target: { value: 'ghp_paste_here_123456789012' },
+    })
+    fireEvent.click(screen.getByText('Install in one click'))
+    await waitFor(() => { expect(api.importSecret).toHaveBeenCalledTimes(1) })
+    expect(api.importSecret).toHaveBeenCalledWith({
+      name: 'DSH_MCP_GITHUB_AUTHORIZATION',
+      value: 'Bearer ghp_paste_here_123456789012',
+    })
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    const entry = firstUpsert(api).server
+    expect(entry.id).toBe('mcp-github')
+    expect(entry.url).toBe('https://api.githubcopilot.com/mcp/')
+    expect(entry.headers).toEqual([
+      { name: 'Authorization', value: { kind: 'env', env: 'DSH_MCP_GITHUB_AUTHORIZATION' } },
+    ])
+    expect(await screen.findByText(/Installed: github/)).toBeTruthy()
+  })
+
   it('edits and removes a server through the mcp RPC', async () => {
     const { api } = mount([server()])
     fireEvent.click(await screen.findByText('Edit'))
