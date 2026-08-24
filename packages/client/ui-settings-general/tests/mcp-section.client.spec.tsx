@@ -88,9 +88,10 @@ describe('McpSection', () => {
     expect(await screen.findByText('Unknown')).toBeTruthy()
   })
 
-  it('adds an HTTP server and sends the draft entry to upsertServer', async () => {
+  it('adds a custom HTTP server through the add-mode chooser', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     fireEvent.click(screen.getByText('Save'))
@@ -104,9 +105,28 @@ describe('McpSection', () => {
     expect(await screen.findByText(/Saved/)).toBeTruthy()
   })
 
+  it('prefills the GitHub template with URL and env-ref Authorization header', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Use this template'))
+    expect(screen.getByDisplayValue('https://api.githubcopilot.com/mcp/')).toBeTruthy()
+    expect(screen.getByDisplayValue('GITHUB_TOKEN')).toBeTruthy()
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    // oxlint-disable-next-line no-unnecessary-type-assertion -- tuple index needs the tsc noUncheckedIndexedAccess guard
+    const payload = api.upsertServer.mock.calls[0]![0]!
+    expect(payload.server.id).toBe('mcp-github')
+    expect(payload.server.serverName).toBe('github')
+    expect(payload.server.url).toBe('https://api.githubcopilot.com/mcp/')
+    expect(payload.server.headers).toEqual([
+      { name: 'Authorization', value: { kind: 'env', env: 'GITHUB_TOKEN', prefix: 'Bearer ' } },
+    ])
+  })
+
   it('saves an env-ref header, never a literal token', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     const key = screen.getByLabelText('Headers Key')

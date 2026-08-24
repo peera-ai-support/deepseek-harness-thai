@@ -61,6 +61,22 @@ function emptyDraft(): Draft {
   }
 }
 
+/** Prefilled draft for the official GitHub remote MCP server. */
+function githubPresetDraft(): Draft {
+  return {
+    id: 'mcp-github',
+    serverName: 'github',
+    transport: 'streamable-http',
+    url: 'https://api.githubcopilot.com/mcp/',
+    command: '',
+    args: '',
+    cwd: '',
+    headers: [{ key: 'Authorization', kind: 'env', value: '', env: 'GITHUB_TOKEN', prefix: 'Bearer ' }],
+    env: [],
+    extra: [],
+  }
+}
+
 function valueToPair(key: string, value: McpValue): DraftPair {
   return value.kind === 'env'
     ? { key, kind: 'env', value: '', env: value.env ?? '', prefix: value.prefix ?? '' }
@@ -105,6 +121,19 @@ function draftToEntry(draft: Draft): McpServerEntry {
   }
 }
 
+/** Column labels above every header/env pair editor. */
+function PairHeaders({ t }: { t: McpSectionComponentProps['t'] }) {
+  return (
+    <div className={css.pairHeaders}>
+      <span>{t('mcp.colKey')}</span>
+      <span>{t('mcp.colKind')}</span>
+      <span>{t('mcp.colValue')}</span>
+      <span>{t('mcp.colPrefix')}</span>
+      <span />
+    </div>
+  )
+}
+
 /** A pair-edit row with change callbacks. */
 function PairRow({ pair, label, onPatch, onRemove, t }: {
   pair: DraftPair
@@ -118,6 +147,7 @@ function PairRow({ pair, label, onPatch, onRemove, t }: {
       <input
         className={css.input}
         value={pair.key}
+        placeholder={t('mcp.placeholderKey')}
         aria-label={`${label} ${t('mcp.keyName')}`}
         onChange={(event) => { onPatch({ key: event.target.value }) }}
       />
@@ -134,6 +164,7 @@ function PairRow({ pair, label, onPatch, onRemove, t }: {
         <input
           className={css.input}
           value={pair.env}
+          placeholder={t('mcp.placeholderEnv')}
           aria-label={`${label} ${t('mcp.envName')}`}
           onChange={(event) => { onPatch({ env: event.target.value }) }}
         />
@@ -141,6 +172,7 @@ function PairRow({ pair, label, onPatch, onRemove, t }: {
         <input
           className={css.input}
           value={pair.value}
+          placeholder={t('mcp.placeholderLiteral')}
           aria-label={`${label} ${t('mcp.value')}`}
           onChange={(event) => { onPatch({ value: event.target.value }) }}
         />
@@ -153,8 +185,7 @@ function PairRow({ pair, label, onPatch, onRemove, t }: {
           aria-label={`${label} ${t('mcp.envPrefix')}`}
           onChange={(event) => { onPatch({ prefix: event.target.value }) }}
         />
-      ) : null}
-      <Button variant="ghost" size="sm" onClick={onRemove} className={css.removeButton}>
+      ) : null}      <Button variant="ghost" size="sm" onClick={onRemove} className={css.removeButton}>
         {t('mcp.remove')}
       </Button>
     </div>
@@ -186,6 +217,10 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [filePath, setFilePath] = useState('')
   const [status, setStatus] = useState<UiStatus>({ kind: 'loading' })
   const [draft, setDraft] = useState<Draft | null>(null)
+  /** True while the add-mode chooser (templates vs custom) is shown. */
+  const [choosing, setChoosing] = useState(false)
+  /** True when the draft came from a preset (shows the token note). */
+  const [presetNote, setPresetNote] = useState(false)
 
   const load = async () => {
     setStatus({ kind: 'loading' })
@@ -271,12 +306,50 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       <div className={css.toolbar}>
         <p className={css.hint}>{t('mcp.hint')}</p>
         {draft === null ? (
-          <Button variant="primary" size="md" onClick={() => { setDraft(emptyDraft()) }}>
+          <Button variant="primary" size="md" onClick={() => { setChoosing(true) }}>
             {t('mcp.add')}
           </Button>
         ) : null}
       </div>
       {filePath !== '' ? <p className={css.fileLine}>{t('mcp.fileLine', { path: filePath })}</p> : null}
+
+      {choosing && draft === null ? (
+        <div className={css.chooser}>
+          <div className={css.chooserCard}>
+            <p className={css.chooserTitle}>{t('mcp.preset.github')}</p>
+            <p className={css.chooserHint}>{t('mcp.preset.githubHint')}</p>
+            <Button
+              variant="primary"
+              size="sm"
+              className={css.chooserAction}
+              onClick={() => {
+                setDraft(githubPresetDraft())
+                setPresetNote(true)
+                setChoosing(false)
+              }}
+            >
+              {t('mcp.preset.githubAction')}
+            </Button>
+          </div>
+          <div className={css.chooserCard}>
+            <p className={css.chooserTitle}>{t('mcp.preset.custom')}</p>
+            <p className={css.chooserHint}>{t('mcp.preset.customHint')}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className={css.chooserAction}
+              onClick={() => {
+                setDraft(emptyDraft())
+                setPresetNote(false)
+                setChoosing(false)
+              }}
+            >
+              {t('mcp.preset.customAction')}
+            </Button>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => { setChoosing(false) }}>{t('mcp.cancel')}</Button>
+        </div>
+      ) : null}
 
       {servers.length === 0 && draft === null ? <p className={css.empty}>{t('mcp.empty')}</p> : null}
       <div className={css.list}>
@@ -293,7 +366,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                 </span>
                 {draft === null ? (
                   <span className={css.cardActions}>
-                    <Button variant="outline" size="sm" onClick={() => { setDraft(toDraft(server)) }}>{t('mcp.edit')}</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setPresetNote(false); setDraft(toDraft(server)) }}>{t('mcp.edit')}</Button>
                     <Button variant="ghost" size="sm" onClick={() => { void remove(server) }}>{t('mcp.remove')}</Button>
                   </span>
                 ) : null}
@@ -308,6 +381,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
 
       {draft !== null ? (
         <div className={css.form}>
+          {presetNote ? <p className={css.note}>{t('mcp.preset.githubTokenNote')}</p> : null}
           <div className={css.formGrid}>
             <label className={css.field}>
               <span className={css.label}>{t('mcp.serverName')}</span>
@@ -366,6 +440,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                   {t('mcp.addRow')}
                 </Button>
               </div>
+              <PairHeaders t={t} />
               {draft.headers.map((pair, index) => (
                 <PairRow
                   key={index}
@@ -417,6 +492,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                   {t('mcp.addRow')}
                 </Button>
               </div>
+              <PairHeaders t={t} />
               {draft.env.map((pair, index) => (
                 <PairRow
                   key={index}
@@ -431,7 +507,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
           ) : null}
 
           <div className={css.formActions}>
-            <Button variant="ghost" size="md" onClick={() => { setDraft(null) }}>{t('mcp.cancel')}</Button>
+            <Button variant="ghost" size="md" onClick={() => { setPresetNote(false); setDraft(null) }}>{t('mcp.cancel')}</Button>
             <Button
               variant="primary"
               size="md"
