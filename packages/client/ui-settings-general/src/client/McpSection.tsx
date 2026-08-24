@@ -5,6 +5,7 @@ import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
 import type { McpHeaderOrEnv, McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
+import { GitHubIcon } from './GitHubIcon.tsx'
 import css from './McpSection.module.css'
 
 /** Registrant-owned dependencies of {@link McpSection}. */
@@ -66,6 +67,8 @@ interface QuickPreset {
   args?: string[]
   headerName: string
   envName: string
+  /** Brand mark shown as the catalog icon. */
+  icon: ({ size }: { size?: number }) => React.JSX.Element
   titleKey: 'mcp.quick.title.mcp-github'
   hintKey: 'mcp.quick.hint.mcp-github'
   tokenKey: 'mcp.quick.tokenLabel.mcp-github'
@@ -80,6 +83,7 @@ const QUICK_PRESETS: readonly QuickPreset[] = [
     url: 'https://api.githubcopilot.com/mcp/',
     headerName: 'Authorization',
     envName: 'DSH_MCP_GITHUB_AUTHORIZATION',
+    icon: GitHubIcon,
     titleKey: 'mcp.quick.title.mcp-github',
     hintKey: 'mcp.quick.hint.mcp-github',
     tokenKey: 'mcp.quick.tokenLabel.mcp-github',
@@ -490,6 +494,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
         return (
           <div key={preset.id} className={css.quick}>
             <div className={css.quickHeader}>
+              <span className={css.quickIcon}><preset.icon size={28} /></span>
               <span className={css.quickTitle}>{t(preset.titleKey)}</span>
               <span className={css.badge}>{installed ? t('mcp.quick.installedTag') : t('mcp.quick.newTag')}</span>
             </div>
