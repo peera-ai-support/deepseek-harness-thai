@@ -136,42 +136,10 @@
   margin-left: auto;
 }
 
-/* ---- add-mode chooser ---- */
 
-.chooser {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
 
-.chooserCard {
-  border: 1px solid var(--dsw-alias-border-l);
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--dsw-alias-bg-layer-1);
-}
 
-.chooserTitle {
-  color: var(--dsw-alias-label-primary);
-  font-weight: 600;
-  font-size: 13px;
-  margin: 0;
-}
 
-.chooserHint {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-  margin: 0;
-  flex: 1;
-}
-
-.chooserAction {
-  align-self: flex-start;
-}
 
 /* ---- form ---- */
 

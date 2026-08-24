@@ -95,10 +95,9 @@ describe('McpSection', () => {
     expect(await screen.findByText('Unknown')).toBeTruthy()
   })
 
-  it('adds a custom HTTP server through the add-mode chooser', async () => {
+  it('opens the form directly on add and sends the draft entry', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     fireEvent.click(screen.getByText('Save'))
@@ -111,27 +110,9 @@ describe('McpSection', () => {
     expect(await screen.findByText(/Saved/)).toBeTruthy()
   })
 
-  it('prefills the GitHub template with URL and env-ref Authorization header', async () => {
-    const { api } = mount([])
-    fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Use this template'))
-    expect(screen.getByDisplayValue('https://api.githubcopilot.com/mcp/')).toBeTruthy()
-    expect(screen.getByLabelText<HTMLTextAreaElement>('Headers').value).toContain('$env:GITHUB_TOKEN')
-    fireEvent.click(screen.getByText('Save'))
-    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const payload = firstUpsert(api)
-    expect(payload.server.id).toBe('mcp-github')
-    expect(payload.server.serverName).toBe('github')
-    expect(payload.server.url).toBe('https://api.githubcopilot.com/mcp/')
-    expect(payload.server.headers).toEqual([
-      { name: 'Authorization', value: { kind: 'env', env: 'GITHUB_TOKEN', prefix: 'Bearer ' } },
-    ])
-  })
-
   it('saves an env-ref header from the Headers JSON textarea, never a literal token', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     fireEvent.change(screen.getByLabelText('Headers'), {
@@ -146,7 +127,6 @@ describe('McpSection', () => {
   it('saves a tool-call timeout override from the form', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://x.example/mcp' } })
     fireEvent.change(screen.getByLabelText('Timeout (ms)'), { target: { value: '120000' } })
@@ -158,7 +138,6 @@ describe('McpSection', () => {
   it('saves a pasted full JSON config in JSON mode', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.click(screen.getByText('JSON'))
     fireEvent.change(screen.getByLabelText('Full configuration (JSON)'), {
       target: { value: JSON.stringify({ serverName: 'j1', transport: 'stdio', command: 'echo', args: ['a'] }) },
@@ -175,7 +154,6 @@ describe('McpSection', () => {
   it('rejects an invalid JSON mode config with a message', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.click(screen.getByText('JSON'))
     fireEvent.change(screen.getByLabelText('Full configuration (JSON)'), {
       target: { value: '{"serverName": "x", "bogus": 1}' },
@@ -188,7 +166,6 @@ describe('McpSection', () => {
   it('saves a pasted real token by exporting it to the user environment and referencing $env', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
     fireEvent.change(screen.getByLabelText('Headers'), {
@@ -209,7 +186,6 @@ describe('McpSection', () => {
   it('keeps short literal values in the config when secret export is off', async () => {
     const { api } = mount([])
     fireEvent.click(await screen.findByText('Add MCP server'))
-    fireEvent.click(screen.getByText('Set up manually'))
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'x' } })
     fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://x.example/mcp' } })
     fireEvent.change(screen.getByLabelText('Headers'), {

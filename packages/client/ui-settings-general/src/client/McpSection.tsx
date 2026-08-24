@@ -59,24 +59,7 @@ function secretEnvName(serverName: string, key: string): string {
 function emptyDraft(): Draft {
   return {
     id: '', serverName: '', transport: 'streamable-http', url: '', command: '',
-    args: '', cwd: '', timeoutMs: '', headersJson: '', envJson: '', extra: [''],
-  }
-}
-
-/** Prefilled draft for the official GitHub remote MCP server. */
-function githubPresetDraft(): Draft {
-  return {
-    id: 'mcp-github',
-    serverName: 'github',
-    transport: 'streamable-http',
-    url: 'https://api.githubcopilot.com/mcp/',
-    command: '',
-    args: '',
-    cwd: '',
-    timeoutMs: '',
-    headersJson: '{\n  "Authorization": "Bearer $env:GITHUB_TOKEN"\n}',
-    envJson: '',
-    extra: [],
+    args: '', cwd: '', timeoutMs: '', headersJson: '', envJson: '', extra: [],
   }
 }
 
@@ -245,10 +228,6 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [filePath, setFilePath] = useState('')
   const [status, setStatus] = useState<UiStatus>({ kind: 'loading' })
   const [draft, setDraft] = useState<Draft | null>(null)
-  /** True while the add-mode chooser (templates vs custom) is shown. */
-  const [choosing, setChoosing] = useState(false)
-  /** True when the draft came from a preset (shows the token note). */
-  const [presetNote, setPresetNote] = useState(false)
   /** Which editor the open add/edit card uses. */
   const [editorMode, setEditorMode] = useState<EditorMode>('form')
   /** Raw JSON text while the JSON editor is active. */
@@ -290,18 +269,22 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     return () => { clearInterval(timer) }
   }, [])
 
-  const openForm = (next: Draft, note: boolean) => {
-    setDraft(next)
-    setPresetNote(note)
+  const openAdd = () => {
+    setDraft(emptyDraft())
     setEditorMode('form')
     setJsonText('')
     setSecretNote('')
-    setChoosing(false)
+  }
+
+  const openEdit = (server: McpServerEntry) => {
+    setDraft(toDraft(server))
+    setEditorMode('form')
+    setJsonText('')
+    setSecretNote('')
   }
 
   const closeForm = () => {
     setDraft(null)
-    setPresetNote(false)
     setJsonText('')
   }
 
@@ -418,32 +401,12 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       <div className={css.toolbar}>
         <p className={css.hint}>{t('mcp.hint')}</p>
         {draft === null ? (
-          <Button variant="primary" size="md" onClick={() => { setChoosing(true) }}>
+          <Button variant="primary" size="md" onClick={openAdd}>
             {t('mcp.add')}
           </Button>
         ) : null}
       </div>
       {filePath !== '' ? <p className={css.fileLine}>{t('mcp.fileLine', { path: filePath })}</p> : null}
-
-      {choosing && draft === null ? (
-        <div className={css.chooser}>
-          <div className={css.chooserCard}>
-            <p className={css.chooserTitle}>{t('mcp.preset.github')}</p>
-            <p className={css.chooserHint}>{t('mcp.preset.githubHint')}</p>
-            <Button variant="primary" size="sm" className={css.chooserAction} onClick={() => { openForm(githubPresetDraft(), true) }}>
-              {t('mcp.preset.githubAction')}
-            </Button>
-          </div>
-          <div className={css.chooserCard}>
-            <p className={css.chooserTitle}>{t('mcp.preset.custom')}</p>
-            <p className={css.chooserHint}>{t('mcp.preset.customHint')}</p>
-            <Button variant="outline" size="sm" className={css.chooserAction} onClick={() => { openForm(emptyDraft(), false) }}>
-              {t('mcp.preset.customAction')}
-            </Button>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => { setChoosing(false) }}>{t('mcp.cancel')}</Button>
-        </div>
-      ) : null}
 
       {servers.length === 0 && draft === null ? <p className={css.empty}>{t('mcp.empty')}</p> : null}
       <div className={css.list}>
@@ -460,7 +423,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                 </span>
                 {draft === null ? (
                   <span className={css.cardActions}>
-                    <Button variant="outline" size="sm" onClick={() => { openForm(toDraft(server), false) }}>{t('mcp.edit')}</Button>
+                    <Button variant="outline" size="sm" onClick={() => { openEdit(server) }}>{t('mcp.edit')}</Button>
                     <Button variant="ghost" size="sm" onClick={() => { void remove(server) }}>{t('mcp.remove')}</Button>
                   </span>
                 ) : null}
@@ -496,8 +459,6 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
               </button>
             </div>
           </div>
-
-          {presetNote ? <p className={css.note}>{t('mcp.preset.githubTokenNote')}</p> : null}
 
           {editorMode === 'form' ? (
             <div className={css.formBody}>
