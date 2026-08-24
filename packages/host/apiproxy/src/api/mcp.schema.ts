@@ -90,3 +90,14 @@ export const mcpStatusValueSchema = z.object({
     delayMs: z.number().positive().optional(),
   })),
 }) satisfies z.ZodType<Wire<ResponseValue<'mcp.status'>>>
+
+/** mcp.importSecret request payload. */
+export const mcpImportSecretRequestSchema = z.object({
+  name: z.string().regex(/^[A-Z][A-Z0-9_]{0,127}$/),
+  value: z.string().min(1).max(4096),
+}) satisfies z.ZodType<Wire<RequestPayload<'mcp.importSecret'>>>
+
+/** mcp.importSecret response value. */
+export const mcpImportSecretValueSchema = z.object({
+  name: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'mcp.importSecret'>>>

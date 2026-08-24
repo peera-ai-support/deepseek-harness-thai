@@ -115,4 +115,16 @@ export interface McpApi {
    * both a disabled reconnect policy and an exhausted attempt budget.
    */
   status(request: RpcRequest<{}>): Promise<RpcResponse<{ statuses: McpServerStatus[] }>>
+
+  /**
+   * Store a secret value in the OS user-environment store (Windows
+   * `HKCU\Environment` / POSIX user profile) under `name`, so the editor can
+   * accept a pasted literal token and keep it out of the patch file. The
+   * value is visible to processes of this user only; the caller then rewrites
+   * the config row to reference `name` via `$env:`/`!!js process.env.*`.
+   * Failures carry `mcp-secret-write-failed`.
+   */
+  importSecret(
+    request: RpcRequest<{ name: string; value: string }>,
+  ): Promise<RpcResponse<{ name: string }>>
 }

@@ -2665,6 +2665,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       upsertServer: request => ok(request, { servers: [] }),
       removeServer: request => ok(request, { servers: [] }),
       status: request => ok(request, { statuses: [] }),
+      importSecret: request => ok(request, { name: (request.payload as { name: string }).name }),
     },
     workspace: {
       list: request => ok(request, {
@@ -3210,6 +3211,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'mcp.upsertServer': return this.api.mcp.upsertServer(request)
       case 'mcp.removeServer': return this.api.mcp.removeServer(request)
       case 'mcp.status': return this.api.mcp.status(request)
+      case 'mcp.importSecret': return this.api.mcp.importSecret(request)
       case 'workspace.list': return this.api.workspace.list(request)
       case 'workspace.create': return this.api.workspace.create(request)
       case 'workspace.rename': return this.api.workspace.rename(request)

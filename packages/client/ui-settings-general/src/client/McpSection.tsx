@@ -48,6 +48,14 @@ const STATUS_POLL_MS = 5_000
 /** `$env:VAR` marker used inside headers/env JSON values. */
 const ENV_MARKER = '$env:'
 
+/** Values at least this long are treated as pasted secrets and exported on save. */
+const SECRET_MIN_LENGTH = 16
+
+function secretEnvName(serverName: string, key: string): string {
+  const clean = (text: string) => (text.toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'X')
+  return `DSH_MCP_${clean(serverName)}_${clean(key)}`
+}
+
 function emptyDraft(): Draft {
   return {
     id: '', serverName: '', transport: 'streamable-http', url: '', command: '',
@@ -245,6 +253,10 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const [editorMode, setEditorMode] = useState<EditorMode>('form')
   /** Raw JSON text while the JSON editor is active. */
   const [jsonText, setJsonText] = useState('')
+  /** True when pasted literal secrets are exported to the user environment on save. */
+  const [exportSecrets, setExportSecrets] = useState(true)
+  /** Success note listing exported secret names (restart reminder). */
+  const [secretNote, setSecretNote] = useState('')
 
   const load = async () => {
     setStatus({ kind: 'loading' })
@@ -283,6 +295,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     setPresetNote(note)
     setEditorMode('form')
     setJsonText('')
+    setSecretNote('')
     setChoosing(false)
   }
 
@@ -290,6 +303,31 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     setDraft(null)
     setPresetNote(false)
     setJsonText('')
+  }
+
+  /** Move pasted literal secrets (long values) into the user environment and reference them by name. */
+  const exportLiterals = async (server: McpServerEntry): Promise<{ entry: McpServerEntry; names: string[] }> => {
+    if (!exportSecrets) return { entry: server, names: [] }
+    const names: string[] = []
+    const swapPairList = async (pairs: McpHeaderOrEnv[]): Promise<McpHeaderOrEnv[]> => {
+      const out: McpHeaderOrEnv[] = []
+      for (const pair of pairs) {
+        if (pair.value.kind === 'literal' && (pair.value.value?.length ?? 0) >= SECRET_MIN_LENGTH) {
+          const name = secretEnvName(server.serverName, pair.name)
+          const response = await connection.api.mcp.importSecret({ name, value: pair.value.value ?? '' })
+          if (!response.result.ok) {
+            throw new Error(t('mcp.saveFailed', { message: response.result.error.message }))
+          }
+          names.push(name)
+          out.push({ name: pair.name, value: { kind: 'env', env: name } })
+          continue
+        }
+        out.push(pair)
+      }
+      return out
+    }
+    const [headers, env] = await Promise.all([swapPairList(server.headers), swapPairList(server.env)])
+    return { entry: { ...server, headers, env }, names }
   }
 
   const saveDraft = async (next: Draft) => {
@@ -300,6 +338,15 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       setStatus({ kind: 'error', message: t('mcp.jsonInvalid', { message: error instanceof Error ? error.message : String(error) }) })
       return
     }
+    let exported: string[] = []
+    try {
+      const result = await exportLiterals(entry)
+      entry = result.entry
+      exported = result.names
+    } catch (error: unknown) {
+      setStatus({ kind: 'error', message: error instanceof Error ? error.message : String(error) })
+      return
+    }
     setStatus({ kind: 'saving' })
     try {
       const response = await connection.api.mcp.upsertServer({ server: entry })
@@ -308,6 +355,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
         return
       }
       setServers(response.result.value.servers)
+      setSecretNote(exported.length > 0 ? t('mcp.exportedNote', { names: exported.join(', ') }) : '')
       closeForm()
       setStatus({ kind: 'saved' })
       void loadStatus()
@@ -453,6 +501,18 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
 
           {editorMode === 'form' ? (
             <div className={css.formBody}>
+              <label className={css.secretRow}>
+                <input
+                  type="checkbox"
+                  checked={exportSecrets}
+                  aria-label={t('mcp.exportLabel')}
+                  onChange={(event) => { setExportSecrets(event.target.checked) }}
+                />
+                <span className={css.secretText}>
+                  <span className={css.labelStrong}>{t('mcp.exportLabel')}</span>
+                  <span className={css.fieldHint}>{t('mcp.exportHint')}</span>
+                </span>
+              </label>
               <div className={css.formGrid}>
                 <label className={css.field}>
                   <span className={css.label}>{t('mcp.serverName')}</span>
@@ -591,6 +651,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       ) : null}
 
       {status.kind === 'saved' ? <p className={css.ok} role="status">{t('mcp.saved')}</p> : null}
+      {secretNote !== '' ? <p className={css.note} role="status">{secretNote}</p> : null}
       {status.kind === 'error' ? <p className={css.error} role="alert">{status.message}</p> : null}
     </div>
   )

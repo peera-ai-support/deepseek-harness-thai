@@ -57,6 +57,8 @@ export interface RpcErrorDetailsMap {
   'mcp-config-invalid': {}
   /** Writing the home-level user patch file failed; the message names the file. */
   'mcp-file-write-failed': {}
+  /** Storing a secret in the OS user-environment store failed; the message carries the reason. */
+  'mcp-secret-write-failed': {}
   'agent-preset-read-only': { agentPreset: string; reason: string }
   'agent-preset-locked': { sessionId: SessionId; agentPreset: string }
   'agent-preset-conflict': { sessionId: SessionId; requestedPreset: string; existingPreset?: string }

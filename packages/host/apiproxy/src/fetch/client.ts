@@ -19,7 +19,7 @@ import {
   hostUpdateCheckValueSchema,
 } from '../api/host.schema.ts'
 import {
-  mcpListServersValueSchema, mcpRemoveServerValueSchema, mcpStatusValueSchema, mcpUpsertServerValueSchema,
+  mcpImportSecretValueSchema, mcpListServersValueSchema, mcpRemoveServerValueSchema, mcpStatusValueSchema, mcpUpsertServerValueSchema,
 } from '../api/mcp.schema.ts'
 import {
   sessionCancelValueSchema,
@@ -171,6 +171,7 @@ export interface IApiClient {
     upsertServer(payload: RequestPayload<'mcp.upsertServer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.upsertServer'>>>
     removeServer(payload: RequestPayload<'mcp.removeServer'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.removeServer'>>>
     status(payload: RequestPayload<'mcp.status'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.status'>>>
+    importSecret(payload: RequestPayload<'mcp.importSecret'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'mcp.importSecret'>>>
   }
   /** client-response passthrough (rpcId is a backfill of the server-request's id — never minted here). */
   respond(message: ClientResponse, signal?: AbortSignal): Promise<RpcReceipt>
@@ -207,6 +208,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'mcp.upsertServer': mcpUpsertServerValueSchema,
   'mcp.removeServer': mcpRemoveServerValueSchema,
   'mcp.status': mcpStatusValueSchema,
+  'mcp.importSecret': mcpImportSecretValueSchema,
   'workspace.list': workspaceListValueSchema,
   'workspace.create': workspaceCreateValueSchema,
   'workspace.rename': workspaceRenameValueSchema,
@@ -465,6 +467,7 @@ export abstract class AbstractApiClient implements IApiClient {
     upsertServer: (payload, signal) => this.callUnary('mcp.upsertServer', payload, signal),
     removeServer: (payload, signal) => this.callUnary('mcp.removeServer', payload, signal),
     status: (payload, signal) => this.callUnary('mcp.status', payload, signal),
+    importSecret: (payload, signal) => this.callUnary('mcp.importSecret', payload, signal),
   }
 
   readonly workspace: IApiClient['workspace'] = {

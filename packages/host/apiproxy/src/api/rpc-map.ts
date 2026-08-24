@@ -49,6 +49,7 @@ export interface RpcMethodMap {
   'mcp.upsertServer': McpApi['upsertServer']
   'mcp.removeServer': McpApi['removeServer']
   'mcp.status': McpApi['status']
+  'mcp.importSecret': McpApi['importSecret']
   'workspace.list': WorkspaceApi['list']
   'workspace.create': WorkspaceApi['create']
   'workspace.rename': WorkspaceApi['rename']

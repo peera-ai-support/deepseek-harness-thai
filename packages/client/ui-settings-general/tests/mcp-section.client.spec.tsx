@@ -59,6 +59,7 @@ function mount(servers: McpServerEntry[], statuses: McpServerStatus[] = []) {
     })),
     removeServer: vi.fn(async (payload: { id: string }) => okResponse({ servers: servers.filter(s => s.id !== payload.id) })),
     status: vi.fn(async () => okResponse({ statuses })),
+    importSecret: vi.fn(async (payload: { name: string; value: string }) => okResponse({ name: payload.name })),
   }
   const connection = { api: { mcp: api } } as unknown as McpSectionComponentProps['connection']
   const view = render(<McpSection {...kit} connection={connection} t={t} close={vi.fn()} />)
@@ -182,6 +183,43 @@ describe('McpSection', () => {
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).not.toHaveBeenCalled() })
     expect(await screen.findByRole('alert')).toBeTruthy()
+  })
+
+  it('saves a pasted real token by exporting it to the user environment and referencing $env', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
+    fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'github' } })
+    fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://api.githubcopilot.com/mcp/' } })
+    fireEvent.change(screen.getByLabelText('Headers'), {
+      target: { value: '{"Authorization": "Bearer ghp_im_a_real_token_123456"}' },
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.importSecret).toHaveBeenCalledTimes(1) })
+    expect(api.importSecret).toHaveBeenCalledWith({
+      name: 'DSH_MCP_GITHUB_AUTHORIZATION',
+      value: 'Bearer ghp_im_a_real_token_123456',
+    })
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    const header = firstUpsert(api).server.headers[0]!
+    expect(header).toEqual({ name: 'Authorization', value: { kind: 'env', env: 'DSH_MCP_GITHUB_AUTHORIZATION' } })
+    expect(await screen.findByText(/Moved out safely/)).toBeTruthy()
+  })
+
+  it('keeps short literal values in the config when secret export is off', async () => {
+    const { api } = mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    fireEvent.click(screen.getByText('Set up manually'))
+    fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'x' } })
+    fireEvent.change(screen.getByLabelText('URL'), { target: { value: 'https://x.example/mcp' } })
+    fireEvent.change(screen.getByLabelText('Headers'), {
+      target: { value: '{"X-Mode": "quiet"}' },
+    })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
+    expect(api.importSecret).not.toHaveBeenCalled()
+    const header = firstUpsert(api).server.headers[0]!
+    expect(header).toEqual({ name: 'X-Mode', value: { kind: 'literal', value: 'quiet' } })
   })
 
   it('edits and removes a server through the mcp RPC', async () => {

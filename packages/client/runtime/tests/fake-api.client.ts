@@ -193,6 +193,7 @@ export class FakeApiClient implements IApiClient {
     upsertServer: (payload: unknown) => this.record('mcp.upsertServer', payload, Promise.resolve(ok({ servers: [] }))),
     removeServer: (payload: unknown) => this.record('mcp.removeServer', payload, Promise.resolve(ok({ servers: [] }))),
     status: (payload: unknown) => this.record('mcp.status', payload, Promise.resolve(ok({ statuses: [] }))),
+    importSecret: (payload: unknown) => this.record('mcp.importSecret', payload, Promise.resolve(ok({ name: (payload as { name: string }).name }))),
   }
 
   // The archive-set field defaults at the binding below so list stubs keep

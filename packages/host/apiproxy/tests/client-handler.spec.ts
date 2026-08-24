@@ -89,6 +89,7 @@ function scriptedApi(overrides: {
       upsertServer: r => ok(r, { servers: [] }),
       removeServer: r => ok(r, { servers: [] }),
       status: r => ok(r, { statuses: [] }),
+      importSecret: r => ok(r, { name: (r.payload as { name: string }).name }),
       ...overrides.mcp,
     },
     workspace: {

@@ -64,6 +64,9 @@ export const zh = {
   'mcp.jsonFull': '完整配置（JSON）',
   'mcp.jsonHint': '直接粘贴单个服务器的 JSON 配置；也可以在值里用 $env:变量名 引用环境变量。',
   'mcp.jsonInvalid': 'JSON 无效：{message}',
+  'mcp.exportLabel': '把粘贴的真实令牌存入本机用户环境（不写进配置文件）',
+  'mcp.exportHint': '长值（16 个字符以上）会保存到你的 Windows 用户环境，并自动改写为 $env: 引用；配置文件与导出包中不会出现令牌。',
+  'mcp.exportedNote': '已安全移出：{names} — 重启应用后生效。',
 } satisfies Record<string, string>
 
 /** The settings namespace key union. */
@@ -133,6 +136,9 @@ export const en = {
   'mcp.jsonFull': 'Full configuration (JSON)',
   'mcp.jsonHint': 'Paste the JSON configuration for one server; use $env:VAR inside values to read environment variables.',
   'mcp.jsonInvalid': 'Invalid JSON: {message}',
+  'mcp.exportLabel': 'Move pasted real tokens into the user environment (not the config file)',
+  'mcp.exportHint': 'Values of 16+ characters are stored in your user environment and rewritten as $env: references; the token never lands in the config file or any exported copy.',
+  'mcp.exportedNote': 'Moved out safely: {names} — restart the app to take effect.',
 } satisfies Record<SettingsKey, string>
 
 /** Thai dictionary, checked complete against the shipped key set. */
@@ -199,4 +205,7 @@ export const th = {
   'mcp.jsonFull': 'คอนฟิกเต็มรูปแบบ (JSON)',
   'mcp.jsonHint': 'วาง JSON ของเซิร์ฟเวอร์หนึ่งตัวได้เลย; ใช้ $env:ชื่อตัวแปร ในค่าเพื่ออ่านจากตัวแปร env',
   'mcp.jsonInvalid': 'JSON ไม่ถูกต้อง: {message}',
+  'mcp.exportLabel': 'ย้ายโทเคนจริงที่วางมาไปเก็บในตัวแปรผู้ใช้ของเครื่อง (ไม่อยู่ในไฟล์ config)',
+  'mcp.exportHint': 'ค่าที่ยาว (16 ตัวอักษรขึ้นไป) จะถูกเก็บในตัวแปรผู้ใช้ของ Windows และเขียนไฟล์ config เป็น $env: อัตโนมัติ — โทเคนไม่มีทางอยู่ในไฟล์ config หรือไฟล์ใดที่แชร์ออกไป',
+  'mcp.exportedNote': 'ปิดบังแล้ว: {names} — รีสตาร์ทแอปเพื่อให้มีผล',
 } satisfies Record<SettingsKey, string>

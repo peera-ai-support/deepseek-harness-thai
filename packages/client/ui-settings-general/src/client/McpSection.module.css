@@ -375,3 +375,21 @@ select.input option {
   line-height: 1.5;
   margin: 0;
 }
+
+.secretRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.secretRow input {
+  margin-top: 3px;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.secretText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

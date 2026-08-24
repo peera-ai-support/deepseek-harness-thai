@@ -159,6 +159,7 @@ export class FakeApiClient implements IApiClient {
     upsertServer: payload => this.record('mcp.upsertServer', payload, Promise.resolve(ok({ servers: [] }))),
     removeServer: payload => this.record('mcp.removeServer', payload, Promise.resolve(ok({ servers: [] }))),
     status: payload => this.record('mcp.status', payload, Promise.resolve(ok({ statuses: [] }))),
+    importSecret: payload => this.record('mcp.importSecret', payload, Promise.resolve(ok({ name: (payload as { name: string }).name }))),
   }
 
   readonly workspace: IApiClient['workspace'] = {

@@ -3321,6 +3321,27 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const store = ctx.mcpStatus
         return Promise.resolve(ok(request, { statuses: store?.snapshot() ?? [] }))
       },
+
+      async importSecret(request) {
+        const { name, value } = request.payload
+        try {
+          // User-scope environment set: registry-invisible nowhere, but scoped
+          // to this Windows account (HKCU\Environment), never a repo/config file.
+          await execFileAsync(
+            'powershell.exe',
+            ['-NoProfile', '-NonInteractive', '-Command',
+              `[Environment]::SetEnvironmentVariable('${name}','${value.replaceAll("'", "''")}','User')`],
+            { windowsHide: true, timeout: 15_000 },
+          )
+          return ok(request, { name })
+        } catch (error: unknown) {
+          return err(request, {
+            code: 'mcp-secret-write-failed',
+            message: `storing secret ${name} failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+      },
     },
 
     settings: {

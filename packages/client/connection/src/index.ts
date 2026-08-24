@@ -116,6 +116,7 @@ const PRIVILEGED_METHODS = new Set([
   'mcp.upsertServer',
   'mcp.removeServer',
   'mcp.status',
+  'mcp.importSecret',
   'settings.describe',
   'settings.openDocument',
   'settings.update',
