@@ -165,6 +165,12 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
           result: { ok: true, value: { currentVersion: 'v', latestVersion: null, updateAvailable: false, repoRoot: '/w' } },
         }
       },
+      async updateApply(request) {
+        return {
+          rpcId: request.rpcId,
+          result: { ok: true, value: { appliedVersion: 'v', repoRoot: '/w' } },
+        }
+      },
     },
     mcp: {
       async listServers(request) {

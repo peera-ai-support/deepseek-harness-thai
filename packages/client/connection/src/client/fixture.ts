@@ -2659,6 +2659,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       updateCheck: request => ok(request, {
         currentVersion: '0.0.0-fixture', latestVersion: null, updateAvailable: false, repoRoot: '/tmp/fixture',
       }),
+      updateApply: request => ok(request, { appliedVersion: '0.0.0-fixture', repoRoot: '/tmp/fixture' }),
     },
     mcp: {
       listServers: request => ok(request, { servers: [], filePath: `${FIXTURE_HOME}/.dsh/cordis.patch.yml` }),
@@ -3207,6 +3208,7 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'host.createDirectory': return this.api.host.createDirectory(request)
       case 'host.openPath': return this.api.host.openPath(request, new AbortController().signal)
       case 'host.updateCheck': return this.api.host.updateCheck(request, new AbortController().signal)
+      case 'host.updateApply': return this.api.host.updateApply(request, signal)
       case 'mcp.listServers': return this.api.mcp.listServers(request)
       case 'mcp.upsertServer': return this.api.mcp.upsertServer(request)
       case 'mcp.removeServer': return this.api.mcp.removeServer(request)

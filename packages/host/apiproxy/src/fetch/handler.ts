@@ -32,7 +32,7 @@ import {
 import {
   hostCreateDirectoryRequestSchema, hostDescribeRequestSchema,
   hostListDirectoryRequestSchema, hostOpenPathRequestSchema,
-  hostPickDirectoryRequestSchema, hostUpdateCheckRequestSchema,
+  hostPickDirectoryRequestSchema, hostUpdateApplyRequestSchema, hostUpdateCheckRequestSchema,
 } from '../api/host.schema.ts'
 import {
   mcpImportSecretRequestSchema, mcpListServersRequestSchema, mcpRemoveServerRequestSchema,
@@ -114,6 +114,7 @@ const UNARY_ROUTES: UnaryRoutes = {
   'host.createDirectory': { schema: hostCreateDirectoryRequestSchema, invoke: (api, r) => api.host.createDirectory(r) },
   'host.openPath': { schema: hostOpenPathRequestSchema, invoke: (api, r, signal) => api.host.openPath(r, signal) },
   'host.updateCheck': { schema: hostUpdateCheckRequestSchema, invoke: (api, r, signal) => api.host.updateCheck(r, signal) },
+  'host.updateApply': { schema: hostUpdateApplyRequestSchema, invoke: (api, r, signal) => api.host.updateApply(r, signal) },
   'mcp.listServers': { schema: mcpListServersRequestSchema, invoke: (api, r) => api.mcp.listServers(r) },
   'mcp.upsertServer': { schema: mcpUpsertServerRequestSchema, invoke: (api, r) => api.mcp.upsertServer(r) },
   'mcp.removeServer': { schema: mcpRemoveServerRequestSchema, invoke: (api, r) => api.mcp.removeServer(r) },

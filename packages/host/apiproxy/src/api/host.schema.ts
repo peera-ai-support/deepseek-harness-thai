@@ -84,3 +84,12 @@ export const hostUpdateCheckValueSchema = z.object({
   updateAvailable: z.boolean(),
   repoRoot: z.string(),
 }) satisfies z.ZodType<Wire<ResponseValue<'host.updateCheck'>>>
+
+/** host.updateApply request payload (empty object literal). */
+export const hostUpdateApplyRequestSchema = z.object({}) satisfies z.ZodType<Wire<RequestPayload<'host.updateApply'>>>
+
+/** host.updateApply response value. */
+export const hostUpdateApplyValueSchema = z.object({
+  appliedVersion: z.string(),
+  repoRoot: z.string(),
+}) satisfies z.ZodType<Wire<ResponseValue<'host.updateApply'>>>

@@ -51,6 +51,14 @@ export interface RpcErrorDetailsMap {
   'not-a-git-checkout': { repoRoot?: string }
   /** `git fetch` failed (network, credentials, or a malformed repo); the message carries git's own text. */
   'git-fetch-failed': {}
+  /** No release tag was found on the remote's default branch to apply. */
+  'no-release-tag': {}
+  /** `git checkout` of the release tag failed (a dirty tracked tree, for example); the details name the tag. */
+  'update-checkout-failed': { tag: string }
+  /** `pnpm install` failed after the release checkout; the message carries pnpm's own text. */
+  'update-install-failed': {}
+  /** `pnpm build` failed after the release checkout; the message carries pnpm's own text. */
+  'update-build-failed': {}
   /** The home-level user patch file could not be read or parsed; the message names the file. */
   'mcp-config-parse': {}
   /** A server row failed validation or uniqueness (see message); nothing was written. */

@@ -82,6 +82,7 @@ function scriptedApi(overrides: {
       updateCheck: r => ok(r, {
         currentVersion: '0-test', latestVersion: null, updateAvailable: false, repoRoot: '/t',
       }),
+      updateApply: r => ok(r, { appliedVersion: '0-test', repoRoot: '/t' }),
       ...overrides.host,
     },
     mcp: {

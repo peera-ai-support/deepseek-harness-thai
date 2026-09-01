@@ -16,7 +16,7 @@ import { hostFrameSchema, muxFrameSchema } from '../api/events.schema.ts'
 import {
   hostCreateDirectoryValueSchema, hostDescribeValueSchema,
   hostListDirectoryValueSchema, hostOpenPathValueSchema, hostPickDirectoryValueSchema,
-  hostUpdateCheckValueSchema,
+  hostUpdateApplyValueSchema, hostUpdateCheckValueSchema,
 } from '../api/host.schema.ts'
 import {
   mcpImportSecretValueSchema, mcpListServersValueSchema, mcpRemoveServerValueSchema, mcpStatusValueSchema, mcpUpsertServerValueSchema,
@@ -116,6 +116,7 @@ export interface IApiClient {
     createDirectory(payload: RequestPayload<'host.createDirectory'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.createDirectory'>>>
     openPath(payload: RequestPayload<'host.openPath'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.openPath'>>>
     updateCheck(payload: RequestPayload<'host.updateCheck'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.updateCheck'>>>
+    updateApply(payload: RequestPayload<'host.updateApply'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'host.updateApply'>>>
   }
   workspace: {
     list(payload: RequestPayload<'workspace.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'workspace.list'>>>
@@ -204,6 +205,7 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'host.createDirectory': hostCreateDirectoryValueSchema,
   'host.openPath': hostOpenPathValueSchema,
   'host.updateCheck': hostUpdateCheckValueSchema,
+  'host.updateApply': hostUpdateApplyValueSchema,
   'mcp.listServers': mcpListServersValueSchema,
   'mcp.upsertServer': mcpUpsertServerValueSchema,
   'mcp.removeServer': mcpRemoveServerValueSchema,
@@ -460,6 +462,9 @@ export abstract class AbstractApiClient implements IApiClient {
     createDirectory: (payload, signal) => this.callUnary('host.createDirectory', payload, signal),
     openPath: (payload, signal) => this.callUnary('host.openPath', payload, signal),
     updateCheck: (payload, signal) => this.callUnary('host.updateCheck', payload, signal),
+    // Apply is minutes-long (git checkout + pnpm install/build); the caller
+    // aborts via signal, so exempt it from the unary deadline like pickDirectory.
+    updateApply: (payload, signal) => this.callUnary('host.updateApply', payload, signal, 'caller-signal-only'),
   }
 
   readonly mcp: IApiClient['mcp'] = {

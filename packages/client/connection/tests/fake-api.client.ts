@@ -150,6 +150,9 @@ export class FakeApiClient implements IApiClient {
     updateCheck: payload => this.record('host.updateCheck', payload, Promise.resolve(ok({
       currentVersion: '0-fake', latestVersion: null, updateAvailable: false, repoRoot: '/fake',
     }))),
+    updateApply: payload => this.record('host.updateApply', payload, Promise.resolve(ok({
+      appliedVersion: '0-fake', repoRoot: '/fake',
+    }))),
   }
 
   readonly mcp: IApiClient['mcp'] = {

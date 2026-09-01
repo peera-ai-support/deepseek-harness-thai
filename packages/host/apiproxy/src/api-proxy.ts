@@ -1087,12 +1087,92 @@ function readAppVersion(appRoot: string): string {
 }
 
 /**
- * Strip the release tag prefix (`dsh-v`, `v`) so tags compare against
- * package.json versions.
+ * Strip the release tag prefix (`dsh-v`, `v`, `thai-`) so tags compare against
+ * package.json versions. The publish repo tags releases `thai-<version>`.
  */
 export function normalizeVersionTag(tag: string): string {
-  return tag.replace(/^dsh-v/i, '').replace(/^v/i, '')
+  return tag.replace(/^dsh-v/i, '').replace(/^thai-/i, '').replace(/^v/i, '')
 }
+
+/** 30-minute per-command ceiling; a full monorepo install/build runs long. */
+const UPDATE_APPLY_TIMEOUT = 30 * 60_000
+
+/**
+ * The newest release tag on the remote's default branch. The default branch is
+ * resolved from the remote-advertised HEAD (`git ls-remote --symref origin
+ * HEAD`), never hardcoded, so a release repo may name its main branch freely
+ * (this app's is `thai`). `git describe --tags` picks the tag at the branch tip
+ * by commit ancestry, which is exactly the latest release. Returns null when
+ * no branch resolves or no tag is reachable from it.
+ * @param runGit - a git runner bound to the checkout cwd.
+ */
+async function resolveLatestReleaseTag(runGit: (args: string[]) => Promise<string>): Promise<string | null> {
+  const head = await runGit(['ls-remote', '--symref', 'origin', 'HEAD'])
+  const branch = /^ref:\s+refs\/heads\/(\S+)\s+HEAD$/m.exec(head.trim())?.[1]
+  if (branch === undefined) return null
+  try {
+    return await runGit(['describe', '--tags', '--abbrev=0', `origin/${branch}`])
+  } catch {
+    // No tag reachable on the default branch (a fresh repo) — not an error.
+    return null
+  }
+}
+
+/**
+ * Run a pnpm command in the checkout. Windows has no pnpm shim node can spawn
+ * directly (`pnpm.cmd` → EINVAL, bare `pnpm` → ENOENT), so win32 wraps the
+ * command in `cmd.exe /c`; POSIX runs it under `sh -c`. Uses the canonical
+ * scrubbed env so no credential-shaped parent variable leaks to the build.
+ * @returns the child's completed stdout/stderr, or rejects with execFile's error.
+ */
+function runPnpm(
+  repoRoot: string,
+  args: string[],
+  signal: AbortSignal | undefined,
+  timeout: number,
+): Promise<{ stdout: string; stderr: string }> {
+  const options = { cwd: repoRoot, env: scrubbedParentEnv(), timeout, signal, maxBuffer: 64 * 1024 * 1024 }
+  return process.platform === 'win32'
+    ? execFileAsync('cmd.exe', ['/c', 'pnpm', ...args], { ...options, windowsHide: true })
+    : execFileAsync('sh', ['-c', ['pnpm', ...args].join(' ')], options)
+}
+
+/**
+ * Resolve the app checkout root, or an RpcResponse refusal. updateCheck and
+ * updateApply both need a pnpm-workspace checkout with a `.git`; a missing root
+ * or no `.git` is the not-a-git-checkout business failure.
+ */
+function requireCheckout(request: RpcRequest<unknown>): string | RpcResponse<never> {
+  const repoRoot = findAppRoot()
+  if (repoRoot === undefined) {
+    return err(request, {
+      code: 'not-a-git-checkout',
+      message: 'no pnpm-workspace.yaml/package.json found walking up from this installation',
+      details: {},
+    })
+  }
+  if (!existsSync(join(repoRoot, '.git'))) {
+    return err(request, {
+      code: 'not-a-git-checkout',
+      message: `${repoRoot} has no .git directory`,
+      details: { repoRoot },
+    })
+  }
+  return repoRoot
+}
+/**
+ * A git runner bound to one checkout. Commands run under the scrubbed parent
+ * env; a missing git binary surfaces as a thrown ENOENT for the caller to
+ * classify into the git-unavailable business failure.
+ */
+function git(repoRoot: string, signal: AbortSignal, timeout: number): (args: string[]) => Promise<string> {
+  return (args: string[]): Promise<string> => execFileAsync(
+    'git', args,
+    { cwd: repoRoot, env: scrubbedParentEnv(), timeout, windowsHide: true, signal },
+  ).then(result => result.stdout.trim())
+}
+
+
 
 export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiProxy {
   const sessionExportCompressionLevel = defaults.sessionExportCompressionLevel
@@ -2890,28 +2970,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       },
 
       async updateCheck(request, signal) {
-        const repoRoot = findAppRoot()
-        if (repoRoot === undefined) {
-          return err(request, {
-            code: 'not-a-git-checkout',
-            message: 'no pnpm-workspace.yaml/package.json found walking up from this installation',
-            details: {},
-          })
-        }
-        if (!existsSync(join(repoRoot, '.git'))) {
-          return err(request, {
-            code: 'not-a-git-checkout',
-            message: `${repoRoot} has no .git directory`,
-            details: { repoRoot },
-          })
-        }
-        const runGit = (args: string[]): Promise<string> => execFileAsync(
-          'git', args,
-          { cwd: repoRoot, env: scrubbedParentEnv(), timeout: 60_000, windowsHide: true, signal },
-        ).then(result => result.stdout.trim())
+        const repoRoot = requireCheckout(request)
+        if (typeof repoRoot !== 'string') return repoRoot
+        const runGit = git(repoRoot, signal, 60_000)
         try {
           // Read-only on the working tree: refs only, never a pull.
-          await runGit(['fetch', '--tags', '--quiet'])
+          await runGit(['fetch', 'origin', '--tags', '--quiet'])
         } catch (error) {
           const code = (error as NodeJS.ErrnoException).code
           if (code === 'ENOENT' || code === 'ERR_ENOENT') {
@@ -2926,9 +2990,10 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         const currentVersion = readAppVersion(repoRoot)
         let latestVersion: string | null = null
         try {
-          latestVersion = normalizeVersionTag(await runGit(['describe', '--tags', '--abbrev=0', 'origin/master']))
+          const remoteTag = await resolveLatestReleaseTag(runGit)
+          if (remoteTag !== null) latestVersion = normalizeVersionTag(remoteTag)
         } catch {
-          // No tag reachable on origin/master (fresh repo) — report, not an error.
+          // No release tag reachable on the remote default branch (fresh repo) — report, not an error.
         }
         return ok(request, {
           currentVersion,
@@ -2936,6 +3001,66 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
           updateAvailable: latestVersion !== null && latestVersion !== currentVersion,
           repoRoot,
         })
+      },
+
+      async updateApply(request, signal) {
+        const repoRoot = requireCheckout(request)
+        if (typeof repoRoot !== 'string') return repoRoot
+        const runGit = git(repoRoot, signal, UPDATE_APPLY_TIMEOUT)
+        try {
+          // Mutating: bring the newest release tag + branch refs local first.
+          await runGit(['fetch', 'origin', '--tags', '--quiet'])
+        } catch (error) {
+          const code = (error as NodeJS.ErrnoException).code
+          if (code === 'ENOENT' || code === 'ERR_ENOENT') {
+            return err(request, { code: 'git-unavailable', message: 'git was not found on the host PATH', details: {} })
+          }
+          return err(request, {
+            code: 'git-fetch-failed',
+            message: `git fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+        // Resolve once more at apply time so a release newer than the last
+        // check is what actually gets applied.
+        let tag: string | null = null
+        try {
+          tag = await resolveLatestReleaseTag(runGit)
+        } catch {
+          return err(request, { code: 'no-release-tag', message: 'no release tag found to apply on the remote default branch', details: {} })
+        }
+        if (tag === null) {
+          return err(request, { code: 'no-release-tag', message: 'no release tag found to apply on the remote default branch', details: {} })
+        }
+        try {
+          // Detached HEAD: the checkout becomes the tagged release's source.
+          await runGit(['checkout', '--detach', tag])
+        } catch (error) {
+          return err(request, {
+            code: 'update-checkout-failed',
+            message: `git checkout ${tag} failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: { tag },
+          })
+        }
+        try {
+          await runPnpm(repoRoot, ['install'], signal, UPDATE_APPLY_TIMEOUT)
+        } catch (error) {
+          return err(request, {
+            code: 'update-install-failed',
+            message: `pnpm install failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+        try {
+          await runPnpm(repoRoot, ['build'], signal, UPDATE_APPLY_TIMEOUT)
+        } catch (error) {
+          return err(request, {
+            code: 'update-build-failed',
+            message: `pnpm build failed: ${error instanceof Error ? error.message : String(error)}`,
+            details: {},
+          })
+        }
+        return ok(request, { appliedVersion: normalizeVersionTag(tag), repoRoot })
       },
 
       async pickDirectory(request, signal) {

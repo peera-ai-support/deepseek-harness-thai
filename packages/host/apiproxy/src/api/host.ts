@@ -117,4 +117,23 @@ export interface HostApi {
     updateAvailable: boolean
     repoRoot: string
   }>>
+
+  /**
+   * Apply the newest release to this git checkout: fetch refs, check out the
+   * latest release tag (detached HEAD), then run `pnpm install` and `pnpm
+   * build` so the on-disk workspace becomes the new version. Unlike
+   * {@link HostApi.updateCheck} this mutates the working tree, so the running
+   * app must be restarted after a success — the new code only loads on the next
+   * launch. appliedVersion = the normalized version of the tag checked out.
+   * Business failures carry the updateCheck set plus `no-release-tag` (no tag
+   * found to apply), `update-checkout-failed` (git checkout), or
+   * `update-install-failed` / `update-build-failed` (pnpm).
+   */
+  updateApply(
+    request: RpcRequest<{}>,
+    signal: AbortSignal,
+  ): Promise<RpcResponse<{
+    appliedVersion: string
+    repoRoot: string
+  }>>
 }

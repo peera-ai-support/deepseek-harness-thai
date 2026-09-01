@@ -45,6 +45,7 @@ export interface RpcMethodMap {
   'host.createDirectory': HostApi['createDirectory']
   'host.openPath': HostApi['openPath']
   'host.updateCheck': HostApi['updateCheck']
+  'host.updateApply': HostApi['updateApply']
   'mcp.listServers': McpApi['listServers']
   'mcp.upsertServer': McpApi['upsertServer']
   'mcp.removeServer': McpApi['removeServer']
