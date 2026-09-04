@@ -260,4 +260,93 @@ describe('McpSection', () => {
     fireEvent.click(screen.getByText('Remove'))
     await waitFor(() => { expect(api.removeServer).toHaveBeenCalledWith({ id: 'mcp-github' }) })
   })
+
+  it('tests connection and reports latency and tool count', async () => {
+    const { api } = mount(
+      [server()],
+      [{
+        serverName: 'github',
+        phase: 'connected',
+        tools: [{ name: 'mcp__github__create_issue', rawName: 'create_issue', description: 'Create an issue' }],
+      }],
+    )
+    const testBtn = await screen.findByText(/Test Connection/)
+    fireEvent.click(testBtn)
+    await waitFor(() => { expect(api.status).toHaveBeenCalled() })
+    expect(await screen.findByText(/1 tools ready/)).toBeTruthy()
+  })
+
+  it('toggles tools drawer and renders exposed tools with copy button', async () => {
+    mount(
+      [server()],
+      [{
+        serverName: 'github',
+        phase: 'connected',
+        tools: [{ name: 'mcp__github__create_issue', rawName: 'create_issue', description: 'Create a GitHub issue' }],
+      }],
+    )
+    const toggleBtn = await screen.findByText(/1 tools/)
+    fireEvent.click(toggleBtn)
+    expect(await screen.findByText('create_issue')).toBeTruthy()
+    expect(screen.getByText('mcp__github__create_issue')).toBeTruthy()
+    expect(screen.getByText('Create a GitHub issue')).toBeTruthy()
+  })
+
+  it('opens add form in modal popup and closes it on cancel', async () => {
+    mount([])
+    fireEvent.click(await screen.findByText('Add MCP server'))
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.click(screen.getByText('Cancel'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('switches to online registry tab and fetches servers', async () => {
+    const fakeServer = {
+      id: 'smithery-slack',
+      qualifiedName: 'slack',
+      displayName: 'Slack MCP',
+      description: 'Interact with Slack channels and messages',
+      verified: true,
+      useCount: 12000,
+    }
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ servers: [fakeServer], pagination: { totalCount: 1, totalPages: 1 } }),
+    })) as unknown as typeof fetch
+
+    try {
+      mount([])
+      const registryTab = await screen.findByText(/Online Registry/)
+      fireEvent.click(registryTab)
+      expect(await screen.findByText('Slack MCP')).toBeTruthy()
+      expect(screen.getByText('Interact with Slack channels and messages')).toBeTruthy()
+      expect(screen.getByText(/Verified/)).toBeTruthy()
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('toggles server enabled state via the header switch', async () => {
+    const s = server({ id: 'mcp-github', serverName: 'github' })
+    const { api } = mount([s])
+    const toggle = await screen.findByRole('switch', { name: /Disable server/i })
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => {
+      expect(api.upsertServer).toHaveBeenCalledWith({
+        server: expect.objectContaining({ id: 'mcp-github', disabled: true }),
+      })
+    })
+  })
+
+  it('displays disabled status chip when server has disabled: true', async () => {
+    const s = server({ id: 'mcp-github', serverName: 'github', disabled: true })
+    mount([s])
+    expect(await screen.findByText('Disabled')).toBeTruthy()
+    const toggle = screen.getByRole('switch', { name: /Enable server/i })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+  })
 })

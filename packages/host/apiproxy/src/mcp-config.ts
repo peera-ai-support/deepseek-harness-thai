@@ -138,6 +138,7 @@ function parseArgsFlow(text: string): string[] {
 /** Parse one config block (indent-8 keys under `config:`) into a server entry. */
 function parseEntryConfig(entryLines: readonly string[]): McpServerEntry | null {
   let idValue: string | undefined
+  let disabledValue: boolean | undefined
   let afterConfig: string[] | undefined
   for (let i = 0; i < entryLines.length; i += 1) {
     const line = entryLines[i]
@@ -145,6 +146,10 @@ function parseEntryConfig(entryLines: readonly string[]): McpServerEntry | null 
     if (idValue === undefined) {
       const match = line.match(/^ {4}- id: (.*)$/)
       if (match !== null && match[1] !== undefined) idValue = unquoteYamlScalar(match[1])
+    }
+    if (disabledValue === undefined) {
+      const match = line.match(/^ {6}disabled: (true|false)$/)
+      if (match !== null && match[1] !== undefined) disabledValue = match[1] === 'true'
     }
     if (afterConfig === undefined && /^ {6}config: *$/.test(line)) afterConfig = entryLines.slice(i + 1)
   }
@@ -158,6 +163,9 @@ function parseEntryConfig(entryLines: readonly string[]): McpServerEntry | null 
     args: [],
     env: [],
     extra: [],
+  }
+  if (disabledValue) {
+    entry.disabled = true
   }
   let container: 'headers' | 'env' | null = null
   let sawTransport = false
@@ -287,10 +295,15 @@ function serializeEntry(entry: McpServerEntry): string[] {
     '- insert:',
     `    - id: ${entry.id}`,
     `      name: '${MCP_PLUGIN_NAME}'`,
+  ]
+  if (entry.disabled) {
+    lines.push('      disabled: true')
+  }
+  lines.push(
     '      config:',
     `        serverName: ${entry.serverName}`,
     `        transport: ${entry.transport}`,
-  ]
+  )
   if (entry.toolCallTimeoutMs !== undefined) {
     lines.push(`        toolCallTimeoutMs: ${entry.toolCallTimeoutMs}`)
   }

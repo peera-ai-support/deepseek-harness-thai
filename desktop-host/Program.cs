@@ -171,16 +171,14 @@ internal static class Program
             throw new InvalidOperationException("Dependencies are missing. Run pnpm install in the project folder first.");
         }
 
-        var overlay = Path.Combine(root, "desktop-host", "pin-browse-picker.overlay.yml");
-        var patchArg = File.Exists(overlay) ? $" --patch \"{overlay}\"" : "";
         // Built mode first: `apps/cli/lib/bin.js` boots in ~3s instead of the
         // ~20s tsx source transpile; fall back to the source launch when the
         // checkout has never been built.
         var built = Path.Combine(root, "apps", "cli", "lib", "bin.js");
         var node = FindOnPath("node.exe");
         var command = File.Exists(built) && node is not null
-            ? $"/c \"\"{node}\" \"{built}\" web{patchArg} --port {Port} --no-open\""
-            : $"/c \"\"{pnpm}\" dsh web{patchArg} --port {Port} --no-open\"";
+            ? $"/c \"\"{node}\" \"{built}\" web --port {Port} --no-open\""
+            : $"/c \"\"{pnpm}\" dsh web --port {Port} --no-open\"";
         serverProcess = Process.Start(new ProcessStartInfo
         {
             FileName = "cmd.exe",

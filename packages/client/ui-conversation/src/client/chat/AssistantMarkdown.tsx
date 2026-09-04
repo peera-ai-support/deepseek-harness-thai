@@ -16,6 +16,7 @@ import { JsonBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatNodeOwnerProps, ChatViewSlotProps } from '../contract/slots.ts'
 import { ReasoningRow } from './ReasoningRow.tsx'
+import { splitScratchpad } from './scratchpad.ts'
 import css from './AssistantMarkdown.module.css'
 
 export interface AssistantMarkdownProps {
@@ -51,17 +52,35 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
     const block = blocks[i]
     if (block === undefined) continue
     switch (block.kind) {
-      case 'text':
-        rendered.push(
-          <MarkdownText
-            key={i}
-            text={block.text}
-            streaming={streaming}
-            codeLabels={codeLabels}
-            fileMentions={mentions}
-          />,
-        )
+      case 'text': {
+        const { monologue, answer } = splitScratchpad(block.text)
+        if (monologue) {
+          const firstNl = monologue.indexOf('\n')
+          const summary = firstNl > 0 ? monologue.slice(0, firstNl) : monologue.slice(0, 120)
+          rendered.push(
+            <ReasoningRow
+              key={`monologue-${i}`}
+              text={monologue}
+              running={streaming && i === last && answer.length === 0}
+              t={t}
+              title={t('row.analysis')}
+              summaryText={summary}
+            />,
+          )
+        }
+        if (answer.length > 0 || (streaming && monologue === null)) {
+          rendered.push(
+            <MarkdownText
+              key={i}
+              text={answer}
+              streaming={streaming}
+              codeLabels={codeLabels}
+              fileMentions={mentions}
+            />,
+          )
+        }
         break
+      }
       case 'reasoning':
         rendered.push(<ReasoningRow key={i} text={block.text} running={streaming && i === last} t={t} />)
         break

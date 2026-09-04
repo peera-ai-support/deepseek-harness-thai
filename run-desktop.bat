@@ -55,18 +55,10 @@ if exist "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" (
 echo [INFO] Starting Backend Server on port %PORT%...
 if exist "%~dp0apps\cli\lib\bin.js" (
     echo [INFO] Starting Backend Server on port %PORT% (built)...
-    if exist "%~dp0desktop-host\pin-browse-picker.overlay.yml" (
-        start /b "" node "%~dp0apps\cli\lib\bin.js" web --patch "%~dp0desktop-host\pin-browse-picker.overlay.yml" --port %PORT% --no-open
-    ) else (
-        start /b "" node "%~dp0apps\cli\lib\bin.js" web --port %PORT% --no-open
-    )
+    start /b "" node "%~dp0apps\cli\lib\bin.js" web --port %PORT% --no-open
 ) else (
     echo [INFO] Starting Backend Server on port %PORT% (source)...
-    if exist "%~dp0desktop-host\pin-browse-picker.overlay.yml" (
-        start /b "" pnpm dsh web --patch "%~dp0desktop-host\pin-browse-picker.overlay.yml" --port %PORT% --no-open
-    ) else (
-        start /b "" pnpm dsh web --port %PORT% --no-open
-    )
+    start /b "" pnpm dsh web --port %PORT% --no-open
 )
 
 echo [INFO] Waiting for server to initialize...

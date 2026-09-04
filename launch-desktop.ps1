@@ -79,12 +79,7 @@ if (-not (Test-AppReady)) {
     $runner = "`"$pnpm`" dsh"
   }
 
-  $overlay = Join-Path $Root 'desktop-host\pin-browse-picker.overlay.yml'
-  $webArgs = "$runner web"
-  if (Test-Path -LiteralPath $overlay) {
-    $webArgs = "$webArgs --patch `"$overlay`""
-  }
-  $webArgs = "$webArgs --port $Port --no-open"
+  $webArgs = "$runner web --port $Port --no-open"
   Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', $webArgs) -WorkingDirectory $Root -WindowStyle Hidden | Out-Null
 
   $deadline = (Get-Date).AddSeconds(120)

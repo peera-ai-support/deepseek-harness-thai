@@ -1,0 +1,261 @@
+/* Fixed viewport-right slot: floats vertically centered on the right edge
+   without affecting scrollHeight or interfering with transcript rows. */
+.slot {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+  pointer-events: none;
+}
+
+.frame {
+  --turn-preview-height: 100px;
+
+  position: relative;
+  width: 22px;
+  max-height: calc(100vh - 200px);
+  height: min(
+    var(--turn-natural-height),
+    max(36px, calc(100vh - 220px)),
+    420px
+  );
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #141a29) 75%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.08));
+  border-radius: 100px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.frame:hover {
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #141a29) 90%, transparent);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Inner scroller: no visible scrollbar, contained overscroll, gradient fade ends */
+.scroller {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  border-radius: 100px;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.fadeTop {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 100%);
+}
+
+.fadeBottom {
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 16px), transparent 100%);
+}
+
+.fadeTop.fadeBottom {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
+}
+
+.marks {
+  position: relative;
+  width: 100%;
+  height: var(--turn-natural-height);
+}
+
+.markPosition {
+  position: absolute;
+  top: calc(var(--turn-natural-position) + var(--turn-rail-inset));
+  right: 0;
+  left: 0;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  transition: top 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: dsh-turn-mark-enter 150ms ease-out;
+}
+
+/* Tick button target */
+.mark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.mark::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.28);
+  content: '';
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.frame:hover .mark::before {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+/* Unloaded historical turns */
+.markUnloaded::before {
+  width: 5px;
+  opacity: 0.45;
+}
+
+/* Hover preview tick state */
+.markPreview::before {
+  width: 13px;
+  height: 2.5px;
+  border-radius: 1.5px;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+}
+
+.markBusy::before {
+  animation: dsh-turn-mark-busy 1s ease-in-out infinite;
+}
+
+/* Active turn indicator */
+.markActive::before {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: #ffffff;
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.85);
+}
+
+.markActive.markPreview::before {
+  width: 14px;
+  height: 2.5px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1);
+}
+
+/* Keyboard focus */
+.mark:focus-visible::before {
+  width: 14px;
+  background: var(--dsw-alias-state-business-primary, #4d8df7);
+}
+
+.mark:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary, #4d8df7);
+  outline-offset: 2px;
+}
+
+/* Tooltip preview balloon */
+.preview {
+  position: absolute;
+  top: clamp(
+    0px,
+    calc(
+      var(--turn-natural-position) + var(--turn-rail-inset)
+      - var(--turn-scroll-top, 0px) - var(--turn-preview-height) / 2
+    ),
+    calc(100% - var(--turn-preview-height))
+  );
+  right: calc(100% + 10px);
+  box-sizing: border-box;
+  width: min(280px, calc(100vw - 80px));
+  max-height: var(--turn-preview-height);
+  overflow: hidden;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--dsw-alias-label-primary, #ffffff);
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #141a29) 95%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: dsh-turn-preview-enter 120ms ease-out;
+  transition: top 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 30;
+}
+
+.previewPrompt,
+.previewResponse {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+}
+
+.previewPrompt {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--dsw-static-deepseek-400, #4d8df7);
+  -webkit-line-clamp: 1;
+}
+
+.previewResponse {
+  margin-top: 3px;
+  color: var(--dsw-alias-label-secondary, #cbd5e1);
+  font-size: 11px;
+  line-height: 15px;
+  -webkit-line-clamp: 3;
+}
+
+@keyframes dsh-turn-mark-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dsh-turn-preview-enter {
+  from { opacity: 0; transform: translateX(4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dsh-turn-mark-busy {
+  0%,
+  100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (max-width: 768px) {
+  .slot {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .scroller,
+  .markPosition,
+  .mark::before,
+  .markBusy::before,
+  .preview {
+    transition: none;
+    animation: none;
+    scroll-behavior: auto;
+  }
+}

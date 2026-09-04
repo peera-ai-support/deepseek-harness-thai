@@ -158,6 +158,10 @@
       "@deepseek-ai/dsh-headless/startup": ["./packages/bundle/headless/src/startup.ts"],
       "@deepseek-ai/dsh-web-app/startup": ["./packages/bundle/web-app/src/startup.ts"],
       "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client"],
+      "@deepseek-ai/dsh-session-turn-outline/types": ["./packages/session/session-turn-outline/src/types.ts"],
+      "@deepseek-ai/dsh-session-turn-outline/client": ["./packages/session/session-turn-outline/src/client.ts"],
+      "@deepseek-ai/dsh-session-turn-outline": ["./packages/session/session-turn-outline/src"],
+      "@deepseek-ai/dsh-win32-process": ["./packages/subprocess/win32-process/src"],
        // One wildcard maps every @deepseek-ai/dsh-<name> to its source. Package
       // dir names are unique across groups, so first-on-disk-wins resolution is
       // unambiguous; adding a package under an existing group needs no edit

@@ -22,7 +22,7 @@ import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { createTransport } from './transport.ts'
 import { syncTools } from './tools.ts'
 import type { ToolBridgeOptions, ToolDisposers } from './tools.ts'
-import type { McpStatusSink } from './status.ts'
+import type { McpServerToolInfo, McpStatusSink } from './status.ts'
 import type { Config } from './index.ts'
 
 /** Automatic reconnect policy for one MCP server connection. */
@@ -149,6 +149,7 @@ export function startConnection(
   let clientClosed: Promise<void> | undefined
   /** Live tool registrations owned by this server; only {@link enqueueSync} and dispose swap it. */
   let disposers: ToolDisposers = new Map()
+  let discoveredTools: McpServerToolInfo[] = []
   let reconnectTimer: NodeJS.Timeout | undefined
   /** Consecutive failed connection attempts within the current outage. */
   let failedAttempts = 0
@@ -170,7 +171,12 @@ export function startConnection(
   function enqueueSync(generation: Client, syncOpts: ToolBridgeOptions = opts): Promise<void> {
     const run = syncChain.then(async () => {
       if (!isCurrent(generation)) return
-      disposers = await syncTools(generation, ctx, syncOpts, disposers)
+      disposers = await syncTools(generation, ctx, syncOpts, disposers, (tools) => {
+        discoveredTools = tools
+        if (connectedAt !== undefined) {
+          status?.update({ phase: 'connected', tools: discoveredTools })
+        }
+      })
     })
     // The chain tail must survive a failed sync; the enqueuing caller owns reporting.
     syncChain = run.catch(() => {})
@@ -226,7 +232,16 @@ export function startConnection(
     const delayMs = Math.min(policy.maxDelayMs, policy.initialDelayMs * 2 ** (failedAttempts - 1))
     const action = lostEstablishedConnection ? 'connection lost; reconnecting' : 'connection failed; retrying'
     ctx.logger.warn(`${label}: ${action} in ${delayMs}ms (attempt ${failedAttempts}/${policy.maxAttempts})`)
-    status?.update({ phase: 'reconnecting', attempt: failedAttempts, delayMs })
+    const errMessage = firstAttemptError instanceof Error
+      ? firstAttemptError.message
+      : (firstAttemptError ? String(firstAttemptError) : undefined)
+    status?.update({
+      phase: 'reconnecting',
+      attempt: failedAttempts,
+      delayMs,
+      ...discoveredTools.length > 0 ? { tools: discoveredTools } : {},
+      ...errMessage !== undefined ? { error: errMessage } : {},
+    })
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined
       settling = connectGeneration(false)
@@ -314,7 +329,7 @@ export function startConnection(
     if (!isCurrent(generation)) return
     connectedAt = Date.now()
     if (failedAttempts > 0) ctx.logger.info(`${label}: reconnected and re-synced tools (attempt ${failedAttempts}/${policy.maxAttempts})`)
-    status?.update({ phase: 'connected' })
+    status?.update({ phase: 'connected', tools: discoveredTools })
   }
 
   /** The in-flight (or last settled) connection attempt; dispose awaits it for quiescence. */

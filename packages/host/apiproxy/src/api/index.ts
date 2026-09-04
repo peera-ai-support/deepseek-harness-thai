@@ -50,7 +50,7 @@ export type {
   SessionListMetadata, SessionProjectionsBlock, SessionSearchItem, SessionsApi, SessionSummary,
 } from './sessions.ts'
 export type { DirectoryEntry, DirectoryListing, HostApi } from './host.ts'
-export type { McpApi, McpHeaderOrEnv, McpServerEntry, McpServerPhase, McpServerStatus, McpServersValue, McpValue } from './mcp.ts'
+export type { McpApi, McpHeaderOrEnv, McpServerEntry, McpServerPhase, McpServerStatus, McpServerToolInfo, McpServersValue, McpValue } from './mcp.ts'
 export type {
   SubagentAddress, SubagentCatalog, SubagentInterruptReceipt, SubagentListEntry,
   SubagentPromptReceipt, SubagentsApi,

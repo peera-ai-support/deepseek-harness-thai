@@ -22,12 +22,26 @@ function latestLine(text: string): string {
  * @param props.text - complete or streaming reasoning text.
  * @param props.running - whether this block is the streaming tail.
  * @param props.t - conversation locale seat for the running status.
+ * @param props.summaryText - optional summary text to display on the row instead of deriving from text.
  * @returns the reasoning disclosure.
  */
-export function ReasoningRow({ text, running, t }: { text: string; running: boolean; t: ChatViewSlotProps['t'] }) {
+export function ReasoningRow({
+  text,
+  running,
+  t,
+  summaryText,
+  title,
+}: {
+  text: string
+  running: boolean
+  t: ChatViewSlotProps['t']
+  summaryText?: string | undefined
+  title?: string | undefined
+}) {
   const [expanded, setExpanded] = useState(false)
   const summaryRef = useRef<HTMLSpanElement>(null)
-  const summary = running ? latestLine(text) : firstLine(text)
+  const targetText = summaryText !== undefined && summaryText.trim().length > 0 ? summaryText : text
+  const summary = running ? latestLine(targetText) : firstLine(targetText)
   const scheduleSummaryScroll = useThrottledVisualUpdate(() => {
     const element = summaryRef.current
     if (element === null) return
@@ -46,7 +60,7 @@ export function ReasoningRow({ text, running, t }: { text: string; running: bool
         titleClassName={css.title}
         chevronClassName={css.chevron}
         icon={<IconThinkOutline14 size={14} />}
-        title={t('row.think')}
+        title={title ?? t('row.think')}
         open={expanded}
         expandable
         expandOnRowClick

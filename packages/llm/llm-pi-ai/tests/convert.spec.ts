@@ -941,4 +941,30 @@ describe('toStreamChunks defensive branches', () => {
     )))
     expect(chunks[0]).toEqual({ type: 'tool-call-delta', index: 0, id: '', argumentsDelta: '{}' })
   })
+
+  it('recovers embedded tool calls from raw text when model hallucinated syntax', async () => {
+    const rawText = "Let's inspect lines!call:default_api:read{file_path:D:\\test.tsx,limit:100,offset:2940}"
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'start', partial: assistant() },
+      { type: 'text_start', contentIndex: 0, partial: assistant() },
+      { type: 'text_delta', contentIndex: 0, delta: rawText, partial: assistant() },
+      { type: 'text_end', contentIndex: 0, content: rawText, partial: assistant() },
+      { type: 'done', reason: 'stop', message: assistant({ content: [{ type: 'text', text: rawText }], stopReason: 'stop' }) },
+    )))
+    const toolCallBlock = chunks.find(c => c.type === 'block-end' && c.block.type === 'tool-call')
+    expect(toolCallBlock).toBeDefined()
+    if (toolCallBlock?.type === 'block-end' && toolCallBlock.block.type === 'tool-call') {
+      expect(toolCallBlock.block.name).toBe('read')
+      expect(JSON.parse(toolCallBlock.block.arguments)).toEqual({
+        file_path: 'D:\\test.tsx',
+        limit: 100,
+        offset: 2940,
+      })
+    }
+    const finish = chunks.find(c => c.type === 'finish')
+    expect(finish).toMatchObject({
+      type: 'finish',
+      reason: { kind: 'tool-calls' },
+    })
+  })
 })

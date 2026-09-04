@@ -77,6 +77,11 @@ export interface ISession {
    */
   loadOlder(): Promise<void>
   /**
+   * Jump loader: page backwards until the window covers seq.
+   * @param seq - the target sequence number to page back to.
+   */
+  loadThrough(seq: number): Promise<void>
+  /**
    * Execute one slash-command line against this session's agent — pure
    * admission semantics (the host executor durably logs the lifecycle).
    * @param line - the full command line, leading slash included.

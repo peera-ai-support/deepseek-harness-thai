@@ -2,7 +2,7 @@
 import type { HostDescriptionSource } from '@deepseek-ai/dsh-client-connection/client'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallBlock } from '@deepseek-ai/dsh-client-runtime/client'
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -22,7 +22,22 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * function of what the turn already knows.
      */
     'tool.call.toolview': { kind: 'keyed'; scope: 'session'; owner: ToolCallOwnerProps }
+    /**
+     * Durable images of a settled image-bearing Tool call, rendered through
+     * the attachment presentation plugin.
+     */
+    'tool.call.images': { kind: 'single'; scope: 'session'; owner: ToolImagesOwnerProps }
   }
+}
+
+/** Owner currency of the Tool image gallery slot: references plus the loader. */
+export interface ToolImagesOwnerProps {
+  /** Durable references or submission-echo previews in result order. */
+  images: readonly { readonly attachment: unknown }[]
+  /** Session-authorized image URL loader for the durable arm. */
+  loadImage: MessageImageLoader
+  /** Horizontal placement inside the owning record. */
+  align: 'start' | 'end'
 }
 
 /** Standard owner currency supplied to every atomic Tool view. */
@@ -39,6 +54,8 @@ export interface ToolCallOwnerProps {
   home?: string | undefined
   /** Open a Tool argument path through the Host. */
   openFile: (path: string) => void
+  /** Session-authorized image loader for the `tool.call.images` slot. */
+  loadImage?: MessageImageLoader | undefined
   /** Inspect this call in the trajectory view when available. */
   inspect?: (() => void) | undefined
 }

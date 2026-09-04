@@ -55,6 +55,14 @@
   min-width: 0;
 }
 
+/* Intermediate tools, context injections, and thinking rows are consolidated inside ThinkingDock above the composer */
+.flowItem[data-chat-flow-kind='tool-call'],
+.flowItem[data-chat-flow-kind='context'],
+.flowItem:has([data-variant='think']:only-child),
+[data-variant='think'] {
+  display: none !important;
+}
+
 /* A keyed renderer may intentionally decline its row after dispatch (the
    completed-turn tail does this when it owns neither actions nor extensions).
    An empty flex item must not consume the column gap. */
@@ -66,57 +74,374 @@
   border-radius: 6px;
 }
 
-/* Selection still sets data-selected for details linkage; no outline —
-   tool rows match Think chrome (no selected ring). */
-
-/* Turn activity keeps the former loader's one-line footprint. A pale
-   brand-blue band sweeps from left to right; reduced-motion keeps it static. */
+/* Turn waiting indicator: displays 'รอแปป . . .' with pulsing dots in the answer row */
 .turnStatus {
+  display: inline-flex;
   align-self: flex-start;
   flex: none;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 16px 0;
+  padding: 6px 14px;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base, #141a29) 92%, transparent);
+  border: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.08));
+  border-radius: 100px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: dsh-turn-status-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dsh-turn-status-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.turnStatusSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.turnStatusDiving {
+  pointer-events: none;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: background 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out;
+}
+
+.waitingIndicator {
   display: inline-flex;
   align-items: center;
-  height: 26px;
-  font: var(--dsw-font-s-strong-14);
-  white-space: nowrap;
-  background: linear-gradient(
-    90deg,
-    var(--dsw-static-deepseek-500) 0%,
-    var(--dsw-static-deepseek-500) 40%,
-    var(--dsw-static-deepseek-200) 50%,
-    var(--dsw-static-deepseek-500) 60%,
-    var(--dsw-static-deepseek-500) 100%
-  );
-  background-position: 100% 0;
-  background-size: 250% 100%;
-  background-clip: text;
-  color: transparent;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: dsh-turn-status-shimmer 1.8s linear infinite;
+  gap: 8px;
+  user-select: none;
+}
+
+.whaleIconWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-static-deepseek-400, #4d8df7);
+  filter: drop-shadow(0 0 6px rgba(77, 141, 247, 0.5));
+}
+
+.whaleWrapperDiving {
+  position: relative;
+  overflow: visible;
+}
+
+.swimmingWhale {
+  animation: dsh-whale-swim 2.6s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+@keyframes dsh-whale-swim {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-2.5px) rotate(-5deg) scale(1.04);
+  }
+  50% {
+    transform: translateY(1.5px) rotate(3deg) scale(0.97);
+  }
+  75% {
+    transform: translateY(-1.5px) rotate(-2deg) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+.divingWhale {
+  animation: dsh-whale-dive 0.95s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  transform-origin: center center;
+}
+
+@keyframes dsh-whale-dive {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  25% {
+    /* Peak of jump into the air! */
+    transform: translateY(-16px) rotate(-22deg) scale(1.15);
+    opacity: 1;
+    filter: drop-shadow(0 4px 8px rgba(77, 141, 247, 0.6));
+  }
+  50% {
+    /* Arcing down towards water */
+    transform: translateY(-2px) rotate(25deg) scale(1.05);
+    opacity: 1;
+  }
+  70% {
+    /* Hitting the water line head-first! */
+    transform: translateY(12px) rotate(60deg) scale(0.85);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.8));
+  }
+  90% {
+    /* Submerging under water */
+    transform: translateY(24px) rotate(75deg) scale(0.5);
+    opacity: 0.4;
+  }
+  100% {
+    /* Disappeared into deep blue */
+    transform: translateY(32px) rotate(85deg) scale(0.1);
+    opacity: 0;
+  }
+}
+
+/* Water Splash */
+.waterSplashContainer {
+  position: absolute;
+  top: 10px;
+  left: 9px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.splashRipple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(96, 165, 250, 0.85);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+}
+
+.splashRipple1 {
+  width: 24px;
+  height: 10px;
+  animation: dsh-splash-ripple 0.55s ease-out 0.42s forwards;
+}
+
+.splashRipple2 {
+  width: 36px;
+  height: 14px;
+  animation: dsh-splash-ripple 0.6s ease-out 0.48s forwards;
+}
+
+@keyframes dsh-splash-ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.9;
+    border-width: 2px;
+  }
+  60% {
+    opacity: 0.7;
+    border-width: 1.5px;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+.splashDroplet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: #93c5fd;
+  box-shadow: 0 0 6px rgba(147, 197, 253, 0.9);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.droplet1 {
+  width: 3.5px;
+  height: 4.5px;
+  animation: dsh-droplet-1 0.52s cubic-bezier(0.1, 0.7, 0.3, 1) 0.44s forwards;
+}
+
+.droplet2 {
+  width: 4px;
+  height: 5px;
+  animation: dsh-droplet-2 0.56s cubic-bezier(0.1, 0.7, 0.3, 1) 0.45s forwards;
+}
+
+.droplet3 {
+  width: 4.5px;
+  height: 5.5px;
+  animation: dsh-droplet-3 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) 0.46s forwards;
+}
+
+.droplet4 {
+  width: 3.5px;
+  height: 4.5px;
+  animation: dsh-droplet-4 0.54s cubic-bezier(0.1, 0.7, 0.3, 1) 0.47s forwards;
+}
+
+.droplet5 {
+  width: 3px;
+  height: 4px;
+  animation: dsh-droplet-5 0.5s cubic-bezier(0.1, 0.7, 0.3, 1) 0.48s forwards;
+}
+
+@keyframes dsh-droplet-1 {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-14px, -18px) scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-20px, -4px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes dsh-droplet-2 {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-7px, -24px) scale(1.1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-11px, -8px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes dsh-droplet-3 {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(1px, -27px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(2px, -10px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes dsh-droplet-4 {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(9px, -22px) scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(14px, -7px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes dsh-droplet-5 {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(17px, -16px) scale(0.9);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(22px, -3px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.waitingText {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary, #cbd5e1);
+  letter-spacing: 0.3px;
+}
+
+.waitingText::before {
+  content: 'รอแปป';
+}
+
+.waitingTextDiving {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.typingDotsDiving {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.typingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 14px;
+  padding-left: 2px;
+}
+
+.typingDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--dsw-static-deepseek-400, #4d8df7);
+  opacity: 0.4;
+  animation: dsh-dot-bounce 1.4s ease-in-out infinite;
+}
+
+.typingDot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dsh-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+    background: #60a5fa;
+  }
 }
 
 .turnStatusClock {
-  margin-left: 8px;
+  margin-left: 6px;
   font: var(--dsw-font-xs-13);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-caption);
-  -webkit-text-fill-color: var(--dsw-alias-label-caption);
-}
-
-@keyframes dsh-turn-status-shimmer {
-  to {
-    background-position: 0 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .turnStatus {
-    background-position: 0 0;
-    background-size: 100% 100%;
-    animation: none;
-  }
+  color: var(--dsw-alias-label-caption, #64748b);
 }
 
 .hint {

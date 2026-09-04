@@ -16,7 +16,7 @@ export type {
   GoalsApi, GoalRef,
   SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
   CredentialsApi, CredentialView, ConfigurableProviderView, DiscoveredModelView, LlmApi,
-  McpApi, McpServerEntry, McpServerStatus, McpValue, McpHeaderOrEnv,
+  McpApi, McpServerEntry, McpServerStatus, McpServerToolInfo, McpValue, McpHeaderOrEnv,
   SubagentsApi, SubagentAddress, SubagentCatalog, SubagentListEntry, SubagentPromptReceipt,
   JobView,
 } from '@deepseek-ai/dsh-host-apiproxy/api'

@@ -309,7 +309,7 @@ describe('argument and service preconditions', () => {
 
     const nonImage = await readImage(ctx, { file_path: 'notes.txt' }, agentOn('vision-model'))
     expect(nonImage.isError).toBe(true)
-    expect(text(nonImage)).toContain('only accepts PNG/JPEG/WebP/GIF paths')
+    expect(text(nonImage)).toContain('read_image accepts PNG/JPEG/WebP/GIF files')
   })
 
   it('refuses when no attachment service is mounted', async () => {

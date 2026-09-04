@@ -31,6 +31,7 @@ import { ChatView } from './chat/ChatView.tsx'
 import { StatsLine } from './chat/StatsLine.tsx'
 import { ApprovalPanel } from './skeleton/ApprovalPanel.tsx'
 import { todoDockEntry } from './skeleton/TodoPanel.tsx'
+import { thinkingDockEntry } from './chat/ThinkingDock.tsx'
 import { queueDockEntry } from './queue/QueueDock.tsx'
 import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
 import { ConversationSession, ConversationSessionHeader } from './skeleton/ConversationSession.tsx'
@@ -402,6 +403,7 @@ export function apply(ctx: Context): void {
           return workspaces.openPath(resolveWorkspacePath(cwd, path))
         },
         loadOlder: () => { void scoped.loadOlder() },
+        loadThrough: seq => scoped.loadThrough(seq),
         loadImage: attachment => conversation.resolveImage(sessionId, attachment),
         // Unregistered 'trajectory' id is safe: the tab ring falls back to
         // the first view, and the untouched inspect target stays inert.
@@ -438,6 +440,9 @@ export function apply(ctx: Context): void {
 
   // The plan strip rides the input dock above the queue rows (same posture).
   ctx.plugin(todoDockEntry)
+
+  // The live thinking dock rides the input dock while the model is running.
+  ctx.plugin(thinkingDockEntry)
 
   // The read-only queue dock entry rides the same
   // registration path into the input dock declared above.

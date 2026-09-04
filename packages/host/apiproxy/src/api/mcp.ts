@@ -40,6 +40,8 @@ export interface McpServerEntry {
   serverName: string
   /** `streamable-http` connects a URL; `stdio` spawns a child program. */
   transport: 'stdio' | 'streamable-http'
+  /** True when the plugin row is explicitly disabled in cordis.patch.yml. */
+  disabled?: boolean
   /** streamable-http server URL. */
   url?: string
   /** streamable-http request headers. */
@@ -66,6 +68,16 @@ export interface McpServersValue {
 /** One live connection phase of an mcp-client instance. */
 export type McpServerPhase = 'connecting' | 'connected' | 'reconnecting' | 'disabled'
 
+/** Exposed tool summary from an active MCP server. */
+export interface McpServerToolInfo {
+  /** Full public tool name as registered into ctx.tools (e.g. mcp__serverName__toolName). */
+  name: string
+  /** Raw tool name defined by the MCP server (e.g. toolName). */
+  rawName: string
+  /** Tool description provided by the MCP server. */
+  description?: string | undefined
+}
+
 /** Live connection status of one mcp-client instance, keyed by `serverName`. */
 export interface McpServerStatus {
   /** The instance's stable local namespace. */
@@ -73,9 +85,13 @@ export interface McpServerStatus {
   /** Current lifecycle phase. */
   phase: McpServerPhase
   /** Consecutive failed attempts within the current outage (reconnecting only). */
-  attempt?: number
+  attempt?: number | undefined
   /** Planned wait before the next retry in ms (reconnecting only). */
-  delayMs?: number
+  delayMs?: number | undefined
+  /** Tools discovered and registered from this server when connected. */
+  tools?: McpServerToolInfo[] | undefined
+  /** Error message if down or reconnecting. */
+  error?: string | undefined
 }
 
 /** mcp domain unary methods. */

@@ -49,6 +49,59 @@ function promoteReasoningToText(chunk: StreamChunk): StreamChunk {
   }
 }
 
+/**
+ * Extract hallucinated text-embedded tool calls emitted by models (e.g. Gemini)
+ * that output `call:default_api:read{...}` or `call:read{...}` into plain text.
+ * @param rawText - the accumulated text of a text block.
+ * @returns extracted tool call parameters or null if no valid call pattern is found.
+ */
+export function extractEmbeddedToolCall(rawText: string): {
+  leadText: string
+  toolName: string
+  argumentsJson: string
+} | null {
+  if (!rawText || (!rawText.includes('call:') && !rawText.includes('default_api:'))) return null
+  const match = rawText.match(/([\s\S]*?)(?:!|\s|^)?(?:call:)(?:default_api:)?([a-zA-Z0-9_\-]+)\s*\{([\s\S]*?)\}([\s\S]*)/)
+  if (!match) return null
+
+  const leadText = match[1]?.trim() ?? ''
+  let toolName = match[2] ?? ''
+  if (toolName.startsWith('default_api:')) {
+    toolName = toolName.slice('default_api:'.length)
+  }
+  const argsRaw = match[3] ?? ''
+
+  let args: Record<string, unknown> = {}
+  try {
+    args = JSON.parse('{' + argsRaw + '}') as Record<string, unknown>
+  } catch {
+    const kvRegex = /([a-zA-Z0-9_]+)\s*:\s*([^,]+?)(?=(?:,\s*[a-zA-Z0-9_]+\s*:|$))/g
+    let m: RegExpExecArray | null = kvRegex.exec(argsRaw)
+    while (m !== null) {
+      const key = m[1]?.trim() ?? ''
+      let val: unknown = m[2]?.trim() ?? ''
+      const strVal = String(val)
+      if ((strVal.startsWith('"') && strVal.endsWith('"')) || (strVal.startsWith("'") && strVal.endsWith("'"))) {
+        val = strVal.slice(1, -1)
+      } else if (!isNaN(Number(val)) && strVal !== '') {
+        val = Number(val)
+      } else if (val === 'true') {
+        val = true
+      } else if (val === 'false') {
+        val = false
+      }
+      if (key) args[key] = val
+      m = kvRegex.exec(argsRaw)
+    }
+  }
+
+  return {
+    leadText,
+    toolName,
+    argumentsJson: JSON.stringify(args),
+  }
+}
+
 // XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
 // (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
 // error.message : JSON.stringify(error)`), discarding the original Error and its
@@ -181,9 +234,36 @@ export async function* toStreamChunks(
       case 'text_delta':
         yield { type: 'text-delta', index: event.contentIndex, text: event.delta }
         break
-      case 'text_end':
-        yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: event.content } }
+      case 'text_end': {
+        const recovered = !toolSeen ? extractEmbeddedToolCall(event.content) : null
+        if (recovered) {
+          yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: recovered.leadText } }
+          const toolIndex = event.contentIndex + 1
+          const callId = CallId(`${recovered.toolName}-${Date.now()}-0`)
+          toolSeen = true
+          yield { type: 'block-start', index: toolIndex, blockType: 'tool-call' }
+          yield {
+            type: 'tool-call-delta',
+            index: toolIndex,
+            id: callId,
+            name: recovered.toolName,
+            argumentsDelta: recovered.argumentsJson,
+          }
+          yield {
+            type: 'block-end',
+            index: toolIndex,
+            block: {
+              type: 'tool-call',
+              id: callId,
+              name: recovered.toolName,
+              arguments: recovered.argumentsJson,
+            },
+          }
+        } else {
+          yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: event.content } }
+        }
         break
+      }
       case 'thinking_start':
         pendingReasoning.push({ type: 'block-start', index: event.contentIndex, blockType: 'reasoning' })
         break
@@ -229,15 +309,20 @@ export async function* toStreamChunks(
           },
         }
         break
-      case 'done':
+      case 'done': {
         yield* drainPending(textSeen || toolSeen ? 'reasoning' : 'text')
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
+        const normalReason = mapStopReason(event.message, contextWindow)
+        const reason: FinishReason = normalReason.kind === 'stop' && toolSeen
+          ? { kind: 'tool-calls' }
+          : normalReason
         yield {
           type: 'finish',
-          reason: mapStopReason(event.message, contextWindow),
+          reason,
           replayState: toPiReplayState(event.message),
         }
         return
+      }
       case 'error':
         // In-stream error delivery (pi-ai's style) → error finish chunk
         // (the harness's other sanctioned error path besides throwing).

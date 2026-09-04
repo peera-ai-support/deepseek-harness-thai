@@ -23,11 +23,13 @@ import {
   CodeBlock, DiffBlock, DisclosureRow, IconInspectOutline12, ReadBlock, SearchBlock, StateDot, TerminalBlock, WebBlock,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WebBlockProps } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { CHAT_DIFF_MAX_LINES, type DiffCardModel } from '../models/diff-card-model.ts'
 import { CHAT_READ_MAX_LINES, type ReadCardModel } from '../models/read-card-model.ts'
 import { CHAT_SEARCH_MAX_LINES, type SearchCardModel } from '../models/search-card-model.ts'
 import { terminalBlockLabels, type TerminalCardModel } from '../models/terminal-card-model.ts'
+import type { ImageCardModel } from '../models/image-card-model.ts'
 import type { ToolRowState, ToolRowVariant } from '../models/tool-call-model.ts'
 import css from './ToolRow.module.css'
 
@@ -74,6 +76,12 @@ export interface ToolRowProps {
    * syntax-highlighted window when present.
    */
   read?: ReadCardModel | null | undefined
+  /** Image-card material for a call whose render intent is read_image. */
+  image?: ImageCardModel | null | undefined
+  /** Child slot renderer for the image card gallery. */
+  renderSlot?: PropsRenderSlots<'tool.call.images'>['renderSlot'] | undefined
+  /** Session-authorized image URL loader for the gallery slot. */
+  loadImage?: MessageImageLoader | undefined
   /**
    * Search-card material for a call whose render intent is a search card
    * (derived by `searchCardModel`); it replaces the text body with grouped
@@ -139,6 +147,9 @@ export function ToolRow({
   terminal,
   diff,
   read,
+  image,
+  renderSlot,
+  loadImage,
   search,
   web,
   state,
@@ -150,13 +161,16 @@ export function ToolRow({
   const terminalBody = terminal ?? null
   const diffBody = diff ?? null
   const readBody = read ?? null
+  const imageBody = image !== undefined && image !== null && renderSlot !== undefined && loadImage !== undefined
+    ? image
+    : null
   const searchBody = search ?? null
   const webBody = web ?? null
   const outputText = output ?? null
   // A card replaces the text body; a call carries at most one card kind, so the
   // card props are mutually exclusive. Any of them, or a text body/output,
   // makes the row expandable.
-  const card = terminalBody ?? diffBody ?? readBody ?? searchBody ?? webBody
+  const card = terminalBody ?? diffBody ?? readBody ?? imageBody ?? searchBody ?? webBody
   const expandable = body !== null || outputText !== null || card !== null
   const open = expanded && expandable
   // The run-state label AT needs: the StateDot and the running sweep are both
@@ -247,49 +261,61 @@ export function ToolRow({
               ? <DiffBlock {...diffBody.card} maxLines={CHAT_DIFF_MAX_LINES} className={css.diffBody} />
               : readBody !== null
                 ? <ReadBlock {...readBody} maxLines={CHAT_READ_MAX_LINES} className={css.readBody} />
-                : searchBody !== null
+                : imageBody !== null
                   ? (
-                    <>
-                      <SearchBlock {...searchBody.card} maxLines={CHAT_SEARCH_MAX_LINES} className={css.searchBody} />
-                      {/* A capped search's recovery locator lives only in the result
-                          text; show it below the card so the dropped rows survive. */}
-                      {searchBody.recovery !== undefined && (
-                        <div className={css.searchRecovery}>{searchBody.recovery}</div>
-                      )}
-                    </>
+                    <div className={css.imageBody}>
+                      <div className={css.imageLabel}>{imageBody.label}</div>
+                      {renderSlot !== undefined && loadImage !== undefined && renderSlot('tool.call.images', {
+                        images: imageBody.images,
+                        loadImage,
+                        align: 'start',
+                      })}
+                      <div className={css.imageMeta}>{imageBody.text}</div>
+                    </div>
                   )
-                  : webBody !== null
-                    ? <WebBlock {...webBody} className={css.webBody} />
-                    : (
+                  : searchBody !== null
+                    ? (
                       <>
-                        {variant === 'code' && body !== null && (
-                          <div className={css.bodyScroll}>
-                            <CodeBlock code={body} lang="typescript" copyLabel={t('copy')} copiedLabel={t('copied')} className={css.codeBody} />
-                          </div>
-                        )}
-                        {(cardBody !== null || outputText !== null) && (
-                          <div className={css.ioCard}>
-                            {cardBody !== null && (
-                              <div className={css.ioSection}>
-                                <span className={css.ioLabel}>IN</span>
-                                <span className={css.ioText}>{cardBody}</span>
-                              </div>
-                            )}
-                            {cardBody !== null && outputText !== null && (
-                              <span className={css.ioDivider} aria-hidden />
-                            )}
-                            {outputText !== null && (
-                              <div className={css.ioSection}>
-                                <span className={css.ioLabel}>OUT</span>
-                                <span className={css.ioText} data-error={state === 'error' || undefined}>
-                                  {outputText}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                        <SearchBlock {...searchBody.card} maxLines={CHAT_SEARCH_MAX_LINES} className={css.searchBody} />
+                        {/* A capped search's recovery locator lives only in the result
+                          text; show it below the card so the dropped rows survive. */}
+                        {searchBody.recovery !== undefined && (
+                          <div className={css.searchRecovery}>{searchBody.recovery}</div>
                         )}
                       </>
-                    )}
+                    )
+                    : webBody !== null
+                      ? <WebBlock {...webBody} className={css.webBody} />
+                      : (
+                        <>
+                          {variant === 'code' && body !== null && (
+                            <div className={css.bodyScroll}>
+                              <CodeBlock code={body} lang="typescript" copyLabel={t('copy')} copiedLabel={t('copied')} className={css.codeBody} />
+                            </div>
+                          )}
+                          {(cardBody !== null || outputText !== null) && (
+                            <div className={css.ioCard}>
+                              {cardBody !== null && (
+                                <div className={css.ioSection}>
+                                  <span className={css.ioLabel}>IN</span>
+                                  <span className={css.ioText}>{cardBody}</span>
+                                </div>
+                              )}
+                              {cardBody !== null && outputText !== null && (
+                                <span className={css.ioDivider} aria-hidden />
+                              )}
+                              {outputText !== null && (
+                                <div className={css.ioSection}>
+                                  <span className={css.ioLabel}>OUT</span>
+                                  <span className={css.ioText} data-error={state === 'error' || undefined}>
+                                    {outputText}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
           {inspect !== undefined && (
             <button
               type="button"

@@ -66,12 +66,17 @@
 }
 
 .thinkBody {
-  padding: 4px 0 4px 22px;
+  padding: 8px 12px 8px 22px;
+  max-height: 480px;
+  overflow-y: auto;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 13px;
+  line-height: 22px;
   white-space: pre-wrap;
   word-break: break-word;
+  background: color-mix(in srgb, var(--dsw-alias-bg-base) 40%, transparent);
+  border-radius: 8px;
+  margin-top: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

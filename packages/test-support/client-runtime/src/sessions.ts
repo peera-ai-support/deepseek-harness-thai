@@ -131,6 +131,13 @@ export class FixtureSession implements SessionFace {
   }
 
   /**
+   * Stub jump loader: fulfills immediately or throws if not stubbed.
+   */
+  async loadThrough(_seq: number): Promise<void> {
+    return Promise.resolve()
+  }
+
+  /**
    * Fail-loud stub; supply `rename` on the fixture's session face to exercise it.
    * @returns never — always throws.
    */

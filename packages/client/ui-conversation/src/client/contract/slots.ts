@@ -54,6 +54,9 @@ export interface MessageImagesOwnerProps {
   align: 'start' | 'end'
 }
 
+/** Session-authorized durable image loader function. */
+export type MessageImageLoader = (attachment: ImageAttachmentRef) => Promise<string>
+
 /** Slot-backed renderer used by chat nodes without importing an attachment implementation. */
 export type RenderMessageImages = (owner: Omit<MessageImagesOwnerProps, 'loadImage'>) => ReactNode
 
@@ -758,6 +761,8 @@ export interface ChatViewInjected {
    */
   openFile: (path: string) => Promise<void>
   loadOlder: () => void
+  /** Jump loader: page backwards until the window covers seq. */
+  loadThrough: (seq: number) => Promise<void>
   /** Resolve a session-authorized historical image for inline display. */
   loadImage: (attachment: ImageAttachmentRef) => Promise<string>
   /** Hand a call off to the trajectory view: write the one-shot inspect target and switch tabs. */

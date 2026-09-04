@@ -29,7 +29,7 @@ export type {
   GoalsApi, GoalRef,
   SettingsApi, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
   CredentialsApi, CredentialView, ConfigurableProviderView, DiscoveredModelView, LlmApi,
-  McpApi, McpServerEntry, McpServerStatus, McpValue, McpHeaderOrEnv,
+  McpApi, McpServerEntry, McpServerStatus, McpServerToolInfo, McpValue, McpHeaderOrEnv,
 } from './api.ts'
 export {
   RpcId,

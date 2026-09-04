@@ -78,6 +78,8 @@ export class Session implements SessionFace {
    *  passes drop all writes once the generation moves on. */
   private openGeneration = 0
   private loadingOlder = false
+  private jumpTargetSeq: number | null = null
+  private jumpPromise: Promise<void> | null = null
   private pending = new Map<string, PendingInteraction>()
   private pendingRev = 0
   private pendingCache: { rev: number; value: PendingInteraction[] } | null = null
@@ -411,6 +413,36 @@ export class Session implements SessionFace {
       this.loadingOlder = false
       this.notifier.markDirty()
     }
+  }
+
+  /** Jump loader: page backwards until the window covers seq (see ISession.loadThrough). */
+  loadThrough(seq: number): Promise<void> {
+    if (this.openState !== 'open' || !this.hasMore || this.baseSeq <= seq) return Promise.resolve()
+    if (this.jumpPromise !== null) {
+      this.jumpTargetSeq = Math.min(this.jumpTargetSeq ?? seq, seq)
+      return this.jumpPromise
+    }
+    if (this.loadingOlder) return Promise.resolve()
+    this.jumpTargetSeq = seq
+    this.loadingOlder = true
+    this.notifier.markDirty()
+    this.jumpPromise = (async () => {
+      try {
+        while (this.hasMore && this.jumpTargetSeq !== null && this.baseSeq > this.jumpTargetSeq) {
+          const before = this.baseSeq
+          await this.loadOlder()
+          if (this.baseSeq >= before) return
+        }
+      } catch (error) {
+        console.error('[web-runtime] loadThrough failed:', error)
+      } finally {
+        this.jumpTargetSeq = null
+        this.jumpPromise = null
+        this.loadingOlder = false
+        this.notifier.markDirty()
+      }
+    })()
+    return this.jumpPromise
   }
 
   /** Reconnect rebuild (manager calls this on onConnected for instances that were opened):

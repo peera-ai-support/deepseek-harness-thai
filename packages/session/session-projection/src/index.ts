@@ -480,14 +480,19 @@ export class SessionProjectionRegistry extends Service {
         cell = this.buildCell(registration.def, session.events.slice(0, event.seq))
         registration.cells.set(session, cell)
       }
-      const next = registration.def.apply(cell.state, event)
-      const changed = !Object.is(next, cell.state)
+      const previousState = cell.state
+      const next = registration.def.apply(previousState, event)
+      const changed = !Object.is(next, previousState)
       cell.state = next
       cell.observedSeq = event.seq
       if (changed && registration.def.wire !== undefined && this.listeners.size > 0) {
-        const value = registration.def.wire.viewSchema.parse(registration.def.wire.view(next))
-        for (const listener of this.listeners) {
-          listener(session, registration.def.key as Extract<keyof SessionProjectionMap, string>, value, event.seq)
+        const prevView = registration.def.wire.view(previousState)
+        const nextView = registration.def.wire.view(next)
+        if (!Object.is(prevView, nextView)) {
+          const value = registration.def.wire.viewSchema.parse(nextView)
+          for (const listener of this.listeners) {
+            listener(session, registration.def.key as Extract<keyof SessionProjectionMap, string>, value, event.seq)
+          }
         }
       }
     }

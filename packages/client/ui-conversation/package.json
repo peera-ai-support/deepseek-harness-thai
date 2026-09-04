@@ -74,6 +74,7 @@
     "@deepseek-ai/dsh-goal": "workspace:^",
     "@deepseek-ai/dsh-permission-presets": "workspace:^",
     "@deepseek-ai/dsh-plan-mode": "workspace:^",
+    "@deepseek-ai/dsh-session-turn-outline": "workspace:^",
     "@deepseek-ai/dsh-tool-todo": "workspace:^"
   },
   "devDependencies": {
@@ -100,6 +101,7 @@
     "@deepseek-ai/dsh-plan-mode": "workspace:^",
     "@deepseek-ai/dsh-session-projection": "workspace:^",
     "@deepseek-ai/dsh-session-stats": "workspace:^",
+    "@deepseek-ai/dsh-session-turn-outline": "workspace:^",
     "@deepseek-ai/dsh-token-meter": "workspace:^",
     "@deepseek-ai/dsh-tool-todo": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",

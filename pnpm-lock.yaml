@@ -1455,6 +1455,9 @@ importers:
       '@deepseek-ai/dsh-session-stats':
         specifier: workspace:^
         version: link:../../session/session-stats
+      '@deepseek-ai/dsh-session-turn-outline':
+        specifier: workspace:^
+        version: link:../../session/session-turn-outline
       '@deepseek-ai/dsh-storage':
         specifier: workspace:^
         version: link:../../storage/storage
@@ -1931,6 +1934,9 @@ importers:
       '@deepseek-ai/dsh-session-stats':
         specifier: workspace:^
         version: link:../../session/session-stats
+      '@deepseek-ai/dsh-session-turn-outline':
+        specifier: workspace:^
+        version: link:../../session/session-turn-outline
       '@deepseek-ai/dsh-settings':
         specifier: workspace:^
         version: link:../../settings/settings
@@ -6011,6 +6017,9 @@ importers:
 
   packages/sandbox/sandbox-windows-acl:
     dependencies:
+      '@deepseek-ai/dsh-win32-process':
+        specifier: workspace:^
+        version: link:../../subprocess/win32-process
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
@@ -6018,9 +6027,6 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-invariants':
-        specifier: workspace:^
-        version: link:../../runtime-diagnostics/invariants
       '@deepseek-ai/dsh-pwsh-local':
         specifier: workspace:^
         version: link:../../shell/pwsh-local
@@ -6664,6 +6670,31 @@ importers:
       '@deepseek-ai/dsh-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
+
+  packages/session/session-turn-outline:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@deepseek-ai/dsh-llm':
+        specifier: workspace:^
+        version: link:../../llm/llm
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-session-projection':
+        specifier: workspace:^
+        version: link:../session-projection
 
   packages/settings/settings:
     dependencies:
@@ -7894,6 +7925,16 @@ importers:
       '@deepseek-ai/dsh-timeout':
         specifier: workspace:^
         version: link:../../util/timeout
+
+  packages/subprocess/win32-process:
+    dependencies:
+      koffi:
+        specifier: ^3.1.0
+        version: 3.1.1
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
 
   packages/terminal/terminal:
     devDependencies:

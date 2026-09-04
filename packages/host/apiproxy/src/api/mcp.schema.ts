@@ -32,6 +32,7 @@ export const mcpServerEntrySchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/),
   serverName: z.string().regex(/^[A-Za-z0-9_-]{1,32}$/),
   transport: z.enum(['streamable-http', 'stdio']),
+  disabled: z.boolean().optional(),
   url: z.url().optional(),
   headers: z.array(mcpHeaderOrEnvSchema),
   command: z.string().min(1).optional(),
@@ -88,6 +89,12 @@ export const mcpStatusValueSchema = z.object({
     phase: z.enum(['connecting', 'connected', 'reconnecting', 'disabled']),
     attempt: z.number().int().positive().optional(),
     delayMs: z.number().positive().optional(),
+    tools: z.array(z.object({
+      name: z.string(),
+      rawName: z.string(),
+      description: z.string().optional(),
+    })).optional(),
+    error: z.string().optional(),
   })),
 }) satisfies z.ZodType<Wire<ResponseValue<'mcp.status'>>>
 

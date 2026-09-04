@@ -101,7 +101,25 @@ describe('parseMcpPatch', () => {
         args: ['-y', 'server-a', 'it''s']
 `
     const [server] = parseMcpPatch(patch)
-    expect(server?.args).toEqual(['-y', 'server-a', 'it\'s'])  })
+    expect(server?.args).toEqual(['-y', 'server-a', 'it\'s'])
+  })
+
+  it('parses and round-trips a disabled server entry', () => {
+    const patch = `- insert:
+    - id: mcp-vercel
+      name: '${MCP_PLUGIN_NAME}'
+      disabled: true
+      config:
+        serverName: vercel
+        transport: streamable-http
+        url: https://mcp.vercel.com/
+`
+    const [server] = parseMcpPatch(patch)
+    expect(server?.disabled).toBe(true)
+    expect(server?.serverName).toBe('vercel')
+    const rebuilt = rebuildMcpPatchText(patch, [server!])
+    expect(rebuilt).toBe(patch)
+  })
 })
 
 describe('rebuildMcpPatchText', () => {

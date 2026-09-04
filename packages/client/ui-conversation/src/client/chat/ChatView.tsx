@@ -14,11 +14,14 @@
 // lifecycle updates replace only their own row without remounting it.
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import clsx from 'clsx'
 import type { ConversationTimelineSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
-import { Button, IconChevronDownOutline14, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, FishLogo, IconChevronDownOutline14, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatViewSlotProps, RenderMessageImages } from '../contract/slots.ts'
 import { PendingSteeringBubble } from './MessageItem.tsx'
 import { ChatNodeSeat } from './ChatNodeSeat.tsx'
+import { TurnNavigator } from './TurnNavigator.tsx'
+import { mergeTurnRailItems, type LoadedRailItem, type TurnRailItem } from './turn-rail-items.ts'
 import { formatRunDuration } from './message-chrome.ts'
 import css from './ChatView.module.css'
 
@@ -116,12 +119,13 @@ function runningTurnStartTime(timeline: ConversationTimelineSnapshot): number | 
 }
 
 /** Turn-level model activity label retained across first-token, tool, and streaming phases. */
-function TurnStatus({ startTime, t }: {
+function TurnStatus({ startTime, t, diving = false }: {
   /** The running turn's logged `turn/start` time; null falls back to mount
    *  time when that boundary is outside the window. */
   startTime: number | null
   /** The owning view's locale seat. */
   t: ChatViewSlotProps['t']
+  diving?: boolean | undefined
 }) {
   const [mountedAt] = useState(() => Date.now())
   // Anchored to turn/start so a mid-turn reload keeps the real
@@ -140,9 +144,31 @@ function TurnStatus({ startTime, t }: {
   // has clearly been running for a while.
   const showClock = elapsedMs >= 15_000
   return (
-    <div className={css.turnStatus} role="status" aria-live="polite">
-      Deep diving...
-      {showClock && (
+    <div className={clsx(css.turnStatus, diving && css.turnStatusDiving)} role="status" aria-live="polite">
+      <span className={css.turnStatusSrOnly}>Deep diving...</span>
+      <span className={css.waitingIndicator} aria-hidden>
+        <span className={clsx(css.whaleIconWrapper, diving && css.whaleWrapperDiving)}>
+          <FishLogo size={18} className={clsx(css.swimmingWhale, diving && css.divingWhale)} />
+          {diving && (
+            <span className={css.waterSplashContainer}>
+              <span className={clsx(css.splashRipple, css.splashRipple1)} />
+              <span className={clsx(css.splashRipple, css.splashRipple2)} />
+              <span className={clsx(css.splashDroplet, css.droplet1)} />
+              <span className={clsx(css.splashDroplet, css.droplet2)} />
+              <span className={clsx(css.splashDroplet, css.droplet3)} />
+              <span className={clsx(css.splashDroplet, css.droplet4)} />
+              <span className={clsx(css.splashDroplet, css.droplet5)} />
+            </span>
+          )}
+        </span>
+        <span className={clsx(css.waitingText, diving && css.waitingTextDiving)} />
+        <span className={clsx(css.typingDots, diving && css.typingDotsDiving)}>
+          <span className={css.typingDot} />
+          <span className={css.typingDot} />
+          <span className={css.typingDot} />
+        </span>
+      </span>
+      {showClock && !diving && (
         <span className={css.turnStatusClock} aria-hidden>
           {formatRunDuration(elapsedMs, t)}
         </span>
@@ -156,7 +182,8 @@ function TurnStatus({ startTime, t }: {
  * ordered business Node crosses the keyed renderer seat.
  */
 export function ChatView({
-  useSession, useSessions, useStore, renderSlot, sessionId, openFile, loadOlder, loadImage, inspectCall, chatScroll, forkAt,
+  useSession, useSessions, useStore, useProjection, renderSlot, sessionId,
+  openFile, loadOlder, loadThrough, loadImage, inspectCall, chatScroll, forkAt,
   fileMentions, t,
 }: ChatViewSlotProps) {
   const order = useSession(s => s.chat.order)
@@ -166,6 +193,22 @@ export function ChatView({
   // Workspace root off the session list row: path summaries display relative to it.
   const cwd = useSessions(s => s.byId[sessionId]?.cwd)
   const running = useSession(s => s.running)
+  const [diving, setDiving] = useState(false)
+  const prevRunningRef = useRef(running)
+
+  useEffect(() => {
+    if (prevRunningRef.current && !running) {
+      setDiving(true)
+      const timer = setTimeout(() => {
+        setDiving(false)
+      }, 950)
+      return () => { clearTimeout(timer) }
+    }
+    if (running) {
+      setDiving(false)
+    }
+    prevRunningRef.current = running
+  }, [running])
   const openState = useSession(s => s.openState)
   const openError = useSession(s => s.openError)
   const hasMore = useSession(s => s.hasMore)
@@ -215,6 +258,42 @@ export function ChatView({
     [loadImage, renderSlot],
   )
   const runningTurnStart = useMemo(() => runningTurnStartTime(timeline), [timeline])
+
+  const turnOutline = useProjection?.('turnOutline')
+
+  const loadedRailItems = useMemo<LoadedRailItem[]>(() => {
+    const items: LoadedRailItem[] = []
+    let turnIndex = 1
+    for (const key of order) {
+      const node = nodeStore.get(key)
+      if (node !== undefined && (node.kind === 'user' || node.kind === 'steering')) {
+        const data = node.data as { content?: readonly unknown[] } | undefined
+        let text = ''
+        if (typeof data?.content === 'string') {
+          text = data.content
+        } else if (Array.isArray(data?.content)) {
+          text = data.content
+            .map((b: { type?: string; text?: string }) => (b?.type === 'text' && typeof b?.text === 'string' ? b.text : ''))
+            .filter(Boolean)
+            .join(' ')
+        }
+        items.push({
+          turn: turnIndex++,
+          anchorKey: node.key,
+          prompt: text.trim(),
+          response: '',
+        })
+      }
+    }
+    return items
+  }, [nodeStore, order])
+
+  const railItems = useMemo(
+    () => mergeTurnRailItems(loadedRailItems, turnOutline),
+    [loadedRailItems, turnOutline],
+  )
+
+  const [activeUserKey, setActiveUserKey] = useState<string | null>(null)
 
   const listRef = useRef<HTMLDivElement | null>(null)
   const columnRef = useRef<HTMLDivElement | null>(null)
@@ -346,7 +425,56 @@ export function ChatView({
     if (isAtBottom) chatScroll.save(null)
     else if (position !== null) chatScroll.save(position)
     observedTopRef.current = el.scrollTop
+    updateActiveUserKey()
   }
+
+  const updateActiveUserKey = useCallback(() => {
+    const local = listRef.current
+    if (local === null || loadedRailItems.length === 0) return
+    const el = scrollerOf(local)
+    const viewportTop = el.getBoundingClientRect().top
+    let currentKey: string | null = loadedRailItems[0]?.anchorKey ?? null
+
+    for (const item of loadedRailItems) {
+      const row = anchorElement(local, item.anchorKey)
+      if (row !== null) {
+        const rect = row.getBoundingClientRect()
+        if (rect.top <= viewportTop + 140) {
+          currentKey = item.anchorKey
+        }
+      }
+    }
+    setActiveUserKey(currentKey)
+  }, [loadedRailItems])
+
+  const [busyTurn, setBusyTurn] = useState<number | null>(null)
+
+  const activeTurn = useMemo(() => {
+    if (activeUserKey === null) return railItems.at(-1)?.turn ?? null
+    const found = railItems.find(it => it.anchor.kind === 'loaded' && it.anchor.key === activeUserKey)
+    return found?.turn ?? railItems.at(-1)?.turn ?? null
+  }, [activeUserKey, railItems])
+
+  const handleNavigateToTurn = useCallback((item: TurnRailItem): void => {
+    if (item.anchor.kind === 'loaded') {
+      const local = listRef.current
+      if (local === null) return
+      const target = anchorElement(local, item.anchor.key)
+      if (target !== null) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        setActiveUserKey(item.anchor.key)
+      }
+    } else {
+      setBusyTurn(item.turn)
+      void loadThrough(item.anchor.seq).finally(() => {
+        setBusyTurn(null)
+      })
+    }
+  }, [loadThrough])
+
+  useEffect(() => {
+    updateActiveUserKey()
+  }, [updateActiveUserKey])
 
   // Bind the scroll listener on the resolved scrollport once per mount;
   // reader-input attribution rides the observed-top ledger, not per-device
@@ -450,7 +578,7 @@ export function ChatView({
               double-render the same wait. */}
           {/* Turn-level loading signal: rides the whole running turn (first-token
               wait, tool execution, streaming) so it never flickers per step. */}
-          {running && <TurnStatus startTime={runningTurnStart} t={t} />}
+          {(running || diving) && <TurnStatus startTime={runningTurnStart} t={t} diving={diving} />}
           {pendingSteering.map(item => (
             <PendingSteeringBubble
               key={item.id}
@@ -460,6 +588,13 @@ export function ChatView({
             />
           ))}
         </div>
+        <TurnNavigator
+          items={railItems}
+          activeTurn={activeTurn}
+          busyTurn={busyTurn}
+          onNavigate={handleNavigateToTurn}
+          t={t}
+        />
         {!atBottom && (
           <div className={css.toBottomSlot}>
             <button
