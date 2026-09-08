@@ -17,6 +17,16 @@ export const LOCALE_IDS = ['zh', 'en', 'th'] as const
 /** Locale identifier shipped by the browser client. */
 export type BuiltInLocaleId = typeof LOCALE_IDS[number]
 
+/**
+ * Shipped locales a typed dictionary registration must cover. The upstream
+ * pair is mandatory; `th` is optional so a package upstream added after this
+ * fork renders English instead of failing the build.
+ */
+export const REQUIRED_LOCALE_IDS = ['zh', 'en'] as const
+
+/** Shipped locale every typed dictionary registration must provide. */
+export type RequiredLocaleId = typeof REQUIRED_LOCALE_IDS[number]
+
 /** Open locale identifier accepted from language-pack plugins. */
 export type LocaleId = string
 

@@ -17,7 +17,7 @@ import type {
   ISessions, PendingSubmissionRetirement, SessionFace,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-file-upload/client'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import type { ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -71,7 +71,7 @@ export interface IConversation {
    * Jump loader: page backwards until the window covers seq.
    * @param seq - the target sequence number to page back to.
    */
-  loadThrough(seq: number): Promise<void>
+  loadThrough(seq: SessionSeq): Promise<void>
 }
 
 /** Create one browser-only image draft descriptor; only its id enters input state. */
@@ -521,7 +521,7 @@ export class ConversationController extends Service implements IConversation {
   }
 
   /** Jump loader: page backwards until the window covers seq. */
-  async loadThrough(seq: number): Promise<void> {
+  async loadThrough(seq: SessionSeq): Promise<void> {
     await this.scopedSession('loadThrough').loadThrough(seq)
   }
 

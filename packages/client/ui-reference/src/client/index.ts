@@ -25,7 +25,7 @@ import { formatFileMention } from '@deepseek-ai/dsh-file-reference/grammar'
 import type { FileReferenceCandidate } from '@deepseek-ai/dsh-file-reference/types'
 import type { SessionReferenceMentionCandidate } from '@deepseek-ai/dsh-session-reference/types'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
-import { en, NS, zh, type ReferenceKey } from './locales.ts'
+import { en, NS, th, zh, type ReferenceKey } from './locales.ts'
 
 /** Required services: the trigger registry, the Remote namespaces, and the copy. */
 export const inject = [

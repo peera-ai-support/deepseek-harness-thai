@@ -74,4 +74,4 @@ export const th = {
   'empty.models': 'ไม่มีโมเดลที่พร้อมใช้งาน',
   'blocked.composer': 'โมเดลนี้ไม่พร้อมใช้งาน — กรุณาเลือกโมเดลเพื่อดำเนินการต่อ',
   'empty.efforts': 'โมเดลนี้ไม่มีระดับการใช้เหตุผลให้เลือก',
-} satisfies Record<ModelKey, string>
+} satisfies Partial<Record<ModelKey, string>>

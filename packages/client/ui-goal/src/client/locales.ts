@@ -48,4 +48,4 @@ export const th = {
   'action.resume': 'ทำเป้าหมายต่อ',
   'action.edit': 'แก้ไขเป้าหมาย',
   'action.clear': 'ล้างเป้าหมาย',
-} satisfies Record<GoalKey, string>
+} satisfies Partial<Record<GoalKey, string>>

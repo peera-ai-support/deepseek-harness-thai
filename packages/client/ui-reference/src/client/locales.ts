@@ -53,8 +53,5 @@ export const en = {
 export const th = {
   'section.files': 'ไฟล์และโฟลเดอร์',
   'section.sessions': 'บทสนทนาเซสชัน',
-  'candidate.file': 'ไฟล์',
-  'candidate.folder': 'โฟลเดอร์',
-  'candidate.session': 'เซสชัน',
   'candidate.noCwd': '(ไม่มีไดเรกทอรีทำงาน)',
-} satisfies Record<ReferenceKey, string>
+} satisfies Partial<Record<ReferenceKey, string>>

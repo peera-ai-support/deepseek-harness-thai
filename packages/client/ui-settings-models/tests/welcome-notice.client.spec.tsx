@@ -26,6 +26,7 @@ import {
 const WELCOME_NOTICE_COPY = {
   en: { title: en.welcomeTitle, body: en.welcomeBody, continueLabel: en.welcomeContinue },
   zh: { title: zh.welcomeTitle, body: zh.welcomeBody, continueLabel: zh.welcomeContinue },
+  th: { title: th.welcomeTitle, body: th.welcomeBody, continueLabel: th.welcomeContinue },
 }
 
 afterEach(() => {

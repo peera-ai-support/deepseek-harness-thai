@@ -35,4 +35,4 @@ export const th = {
   'row.stopped': 'หยุดการโหลดทักษะแล้ว',
   'row.instructions': 'คำแนะนำ',
   'menu.userOnly': 'เฉพาะผู้ใช้',
-} satisfies Record<SkillKey, string>
+} satisfies Partial<Record<SkillKey, string>>

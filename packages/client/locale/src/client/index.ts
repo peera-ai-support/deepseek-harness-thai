@@ -16,7 +16,7 @@ import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import {
   LOCALE_ID_PATTERN, LOCALE_IDS, LOCALE_PREFERENCE_FIELD, LOCALE_SETTINGS_NAMESPACE,
-  type BuiltInLocaleId, type LocaleId, type LocaleSettings,
+  type BuiltInLocaleId, type LocaleId, type LocaleSettings, type RequiredLocaleId,
 } from '../locale-settings.ts'
 import { en, th, zh, type CommonKey } from '../locales/index.ts'
 import {
@@ -29,7 +29,7 @@ import { createLanguageRowStore } from './settings-store.ts'
 export type { LanguageRowComponentProps, LanguageRowInjected } from './LanguageRow.tsx'
 export type { LanguageOptionRow, LanguageRowState } from './settings-store.ts'
 export type { CommonKey } from '../locales/index.ts'
-export type { BuiltInLocaleId, LocaleId, LocaleSettings } from '../locale-settings.ts'
+export type { BuiltInLocaleId, LocaleId, LocaleSettings, RequiredLocaleId } from '../locale-settings.ts'
 
 // The translate currency lives in ui-slots (the render machinery synthesizes
 // the seat); re-exported here so dictionary owners import one package.
@@ -360,15 +360,20 @@ export class LocaleRuntime {
    * Register a declared namespace's dictionaries, all locales in one call —
    * the typed form: each dictionary is checked against the namespace's
    * {@link LocaleNamespaceMap} key union (a missing or extra key is a
-   * compile error), and every shipped locale is required (bilingual balance
-   * enforced at registration). Duplicate (ns, locale) throws (single occupant; a
+   * compile error), and every locale in {@link REQUIRED_LOCALE_IDS} is
+   * required (bilingual balance enforced at registration); the remaining
+   * shipped locales are optional and fall back through the locale's chain.
+   * Duplicate (ns, locale) throws (single occupant; a
    * namespace's texts have one owner). Registration bumps the revision so
    * mounted outlets pick up late-arriving dictionaries.
    * @param ns - a namespace merged into LocaleNamespaceMap.
    * @param dicts - complete dictionaries keyed by built-in locale id.
    * @returns disposer removing every locale registered by this call (idempotent).
    */
-  register<N extends Extract<keyof LocaleNamespaceMap, string>>(ns: N, dicts: Record<BuiltInLocaleId, LocaleDictOf<N>>): () => void
+  register<N extends Extract<keyof LocaleNamespaceMap, string>>(
+    ns: N,
+    dicts: Record<RequiredLocaleId, LocaleDictOf<N>> & Partial<Record<BuiltInLocaleId, Partial<LocaleDictOf<N>>>>,
+  ): () => void
   /**
    * Single-locale untyped form for language-pack contributions and namespaces
    * outside the merge table.
@@ -379,11 +384,11 @@ export class LocaleRuntime {
    * @throws when locale is not a BCP 47-style tag.
    */
   register(ns: string, locale: string, dict: LocaleDict): () => void
-  register(ns: string, localeOrDicts: string | Record<string, LocaleDict>, dict?: LocaleDict): () => void {
+  register(ns: string, localeOrDicts: string | object, dict?: LocaleDict): () => void {
     const pairs: [string, LocaleDict][] = typeof localeOrDicts === 'string'
       // Overload guarantees dict on the single-locale arm.
       ? [[localeOrDicts, dict as LocaleDict]]
-      : Object.entries(localeOrDicts)
+      : Object.entries(localeOrDicts) as [string, LocaleDict][]
     for (const [locale] of pairs) {
       if (!LOCALE_ID_PATTERN.test(locale)) {
         throw new Error(`locale id "${locale}" is not a BCP 47-style tag`)

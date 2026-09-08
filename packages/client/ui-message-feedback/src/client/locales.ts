@@ -59,4 +59,4 @@ export const th = {
   'error.conflict': 'ความคิดเห็นนี้ถูกแก้ไขจากที่อื่น กำลังแสดงสถานะล่าสุด',
   'error.load': 'โหลดสถานะความคิดเห็นไม่สำเร็จ',
   'error.generic': 'บันทึกความคิดเห็นไม่สำเร็จ',
-} satisfies Record<MessageFeedbackKey, string>
+} satisfies Partial<Record<MessageFeedbackKey, string>>

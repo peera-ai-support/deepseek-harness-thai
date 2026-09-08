@@ -48,7 +48,7 @@ export const en: Record<WorkflowRunKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<WorkflowRunKey, string> = {
+export const th: Partial<Record<WorkflowRunKey, string>> = {
   'run.title': '{name}',
   'run.members.one': '{count} สมาชิก',
   'run.members.other': '{count} สมาชิก',

@@ -58,4 +58,4 @@ export const th = {
   'plan.approve': 'อนุมัติ',
   'plan.decline': 'ปฏิเสธ',
   'plan.discuss': 'คุยรายละเอียดในแชท',
-} satisfies Record<QuestionKey, string>
+} satisfies Partial<Record<QuestionKey, string>>

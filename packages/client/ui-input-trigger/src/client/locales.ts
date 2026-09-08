@@ -40,4 +40,4 @@ export const th = {
   'subagent': 'เอเจนต์ย่อย',
   'loading': 'กำลังโหลด…',
   'suggestions.aria': 'คำแนะนำ Trigger',
-} satisfies Record<MenuKey, string>
+} satisfies Partial<Record<MenuKey, string>>

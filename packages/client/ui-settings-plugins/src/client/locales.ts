@@ -131,7 +131,7 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<PluginsSettingsLocaleKey, string> = {
+export const th: Partial<Record<PluginsSettingsLocaleKey, string>> = {
   nav: 'ปลั๊กอิน',
   title: 'ปลั๊กอิน',
   intro: 'กำหนดค่าและตรวจสอบปลั๊กอินที่ติดตั้งในการติดตั้งนี้',

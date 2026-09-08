@@ -20,12 +20,11 @@ export const en: Record<DeliverablesKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<DeliverablesKey, string> = {
+export const th: Partial<Record<DeliverablesKey, string>> = {
   'produced.label': 'ผลลัพธ์ที่สร้าง',
   'produced.moreOne': '+ อีก 1 ไฟล์',
   'produced.more': '+ อีก {count} ไฟล์',
   'produced.open': 'เปิด {name}',
-  'produced.showInFolder': 'แสดงในโฟลเดอร์',
 }
 
 

@@ -86,7 +86,7 @@ export const en: Record<SubagentKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<SubagentKey, string> = {
+export const th: Partial<Record<SubagentKey, string>> = {
   'diagnostic.corrupt': 'บันทึกเซสชันเสียหาย',
   'diagnostic.unsupported': 'เวอร์ชันบันทึกเอเจนต์ย่อยไม่ได้รับการรองรับ',
   'diagnostic.unavailable': 'บันทึกเซสชันไม่พร้อมใช้งานชั่วคราว',

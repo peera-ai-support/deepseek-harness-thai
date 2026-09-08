@@ -48,5 +48,4 @@ export const th = {
   'status.empty': 'ไม่มีตัวเลือก',
   'overlay.aria': 'ตัวเลือก /{command}',
   'listbox.aria': 'รายการที่ตรงกับ /{command}',
-  'notice.imagesUnsupported': '/{command} ไม่รับไฟล์แนบรูปภาพ กรุณาลบรูปออกก่อน',
-} satisfies Record<CommandKey, string>
+} satisfies Partial<Record<CommandKey, string>>

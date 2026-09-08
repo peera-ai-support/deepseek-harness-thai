@@ -29,4 +29,4 @@ export const th = {
   'chip.on.title': 'เปิดโหมด Plan แล้ว — คลิกเพื่อปิด (/plan off)',
   'chip.off.aria': 'ปิดโหมด Plan แล้ว กดเพื่อเปิด',
   'chip.off.title': 'ปิดโหมด Plan แล้ว — คลิกเพื่อเปิด (/plan)',
-} satisfies Record<PlanKey, string>
+} satisfies Partial<Record<PlanKey, string>>

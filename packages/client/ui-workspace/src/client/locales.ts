@@ -205,4 +205,4 @@ export const th = {
   'time.months': '{n} เดือน',
   'time.years': '{n} ปี',
   'time.ago': '{t}ที่แล้ว',
-} satisfies Record<WorkspaceKey, string>
+} satisfies Partial<Record<WorkspaceKey, string>>

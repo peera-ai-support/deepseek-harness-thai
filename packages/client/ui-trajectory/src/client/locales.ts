@@ -374,3 +374,26 @@ export const en: Record<TrajectoryKey, string> = {
   'layout.systemPromptAndToolsUpdated': 'System Prompt and Tools Updated',
   'layout.compactionInterrupted': 'Compaction was interrupted before completion.',
 }
+
+export const th: Partial<Record<TrajectoryKey, string>> = {
+  'view.trajectory': 'เส้นทางการทำงาน (Trajectory)',
+  'toolbar.aria': 'แถบเครื่องมือเส้นทางการทำงาน',
+  'toolbar.duration': 'ระยะเวลา',
+  'toolbar.useActualDuration': 'ใช้ระยะเวลาจริง',
+  'toolbar.useEqualWidth': 'ใช้ความกว้างเท่ากันทุกการทำงาน',
+  'toolbar.actualTime': 'เวลาตามจริง',
+  'toolbar.turns': 'รอบการสนทนา',
+  'toolbar.expandTurns': 'ขยายรอบการสนทนา',
+  'toolbar.collapseTurns': 'ย่อรอบการสนทนา',
+  'toolbar.calls': 'การเรียกเครื่องมือ',
+  'toolbar.expandCalls': 'ขยายการเรียกเครื่องมือ',
+  'toolbar.collapseCalls': 'ย่อการเรียกเครื่องมือ',
+  'toolbar.search': 'ค้นหาเส้นทางการทำงาน',
+  'toolbar.searchPlaceholder': 'ค้นหา',
+  'details.result': 'ผลลัพธ์',
+  'details.resize': 'ปรับขนาดรายละเอียดอีเวนต์',
+  'details.close': 'ปิดรายละเอียด',
+  'timeline.aria': 'ไทม์ไลน์การทำงาน',
+  'timeline.total': 'รวม {duration}',
+  'timeline.started': 'เริ่ม {time}',
+}

@@ -46,7 +46,7 @@ export const th = {
   'confirm.acknowledge': 'ฉันเข้าใจความเสี่ยงและต้องการดำเนินการต่อ',
   'confirm.cancel': 'ยกเลิก',
   'confirm.enable': 'เปิดใช้งาน Full access',
-} satisfies Record<PermissionSettingsKey, string>
+} satisfies Partial<Record<PermissionSettingsKey, string>>
 
 
 /** Simplified Chinese dictionary for the current-session popup gate. */
@@ -83,4 +83,4 @@ export const accessTh = {
   'confirm.acknowledge': 'ฉันเข้าใจความเสี่ยงและต้องการดำเนินการต่อ',
   'confirm.cancel': 'ยกเลิก',
   'confirm.enable': 'เปิดใช้งาน Full access',
-} satisfies Record<PermissionAccessKey, string>
+} satisfies Partial<Record<PermissionAccessKey, string>>

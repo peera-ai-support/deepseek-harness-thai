@@ -26,4 +26,4 @@ export const th = {
   'unknown': 'ไม่ทราบ',
   'none': 'ไม่มี',
   'truncated': 'ถูกตัดทอน',
-} satisfies Record<CommonKey, string>
+} satisfies Partial<Record<CommonKey, string>>

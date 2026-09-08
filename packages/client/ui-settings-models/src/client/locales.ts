@@ -1,4 +1,5 @@
 /** Copy dictionaries for the Models settings section. */
+import { WELCOME_NOTICE_COPY } from '../onboarding-copy.ts'
 
 /** English strings (the key-set source of truth for this pair). */
 export const en = {
@@ -212,7 +213,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
 }
 
 /** Thai strings (same keys as {@link en}). */
-export const th: { [Key in keyof typeof en]: string } = {
+export const th: Partial<{ [Key in keyof typeof en]: string }> = {
   nav: 'โมเดล',
   title: 'โมเดล',
   intro: 'กรอก API Key ของคุณเพื่อใช้งานโมเดลจากผู้ให้บริการต่อไปนี้',

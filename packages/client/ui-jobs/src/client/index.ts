@@ -9,7 +9,7 @@ import { JobListAction } from './JobListAction.tsx'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import { en, NS, zh, type JobKey } from './locales.ts'
+import { en, NS, th, zh, type JobKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {

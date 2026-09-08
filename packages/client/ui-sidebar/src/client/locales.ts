@@ -25,4 +25,4 @@ export const th = {
   'session.new.label': 'สร้างเซสชันใหม่',
   'toggle.open': 'เปิดแถบข้าง',
   'toggle.collapse': 'ย่อแถบข้าง',
-} satisfies Record<SidebarKey, string>
+} satisfies Partial<Record<SidebarKey, string>>

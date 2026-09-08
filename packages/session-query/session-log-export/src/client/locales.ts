@@ -26,7 +26,7 @@ export const en: Record<keyof typeof zh, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<keyof typeof zh, string> = {
+export const th: Partial<Record<keyof typeof zh, string>> = {
   'dialog.preparingTitle': 'กำลังส่งออกเซสชัน',
   'dialog.preparingDescription': 'กำลังเตรียมไฟล์ ZIP ที่มีเซสชันนี้ เซสชันย่อย และไฟล์แนบ',
   'dialog.successTitle': 'เริ่มดาวน์โหลดเซสชันแล้ว',

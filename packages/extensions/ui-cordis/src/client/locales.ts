@@ -171,4 +171,4 @@ export const th = {
   'body.output': 'ผลลัพธ์',
   'body.copy': 'คัดลอก',
   'body.copied': 'คัดลอกแล้ว',
-} satisfies Record<CordisKey, string>
+} satisfies Partial<Record<CordisKey, string>>

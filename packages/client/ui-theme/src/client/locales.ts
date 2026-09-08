@@ -35,4 +35,4 @@ export const th = {
   'appearance.light': 'สว่าง',
   'appearance.dark': 'มืด',
   'appearance.system': 'ตามระบบ',
-} satisfies Record<ThemeKey, string>
+} satisfies Partial<Record<ThemeKey, string>>

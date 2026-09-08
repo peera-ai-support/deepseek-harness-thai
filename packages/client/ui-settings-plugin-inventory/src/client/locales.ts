@@ -90,17 +90,15 @@ export const th = {
   error: 'ไม่สามารถอ่านปลั๊กอินได้ในขณะนี้',
   retry: 'ลองใหม่',
   search: 'ค้นหาปลั๊กอิน',
-  catalog: 'รายการปลั๊กอิน',
   empty: 'ไม่มีปลั๊กอินที่พร้อมใช้งาน',
   emptySearch: 'ไม่พบปลั๊กอินที่ตรงกัน',
   enabledTag: 'เปิดใช้งาน',
   disabledTag: 'ปิดใช้งาน',
   configuration: 'สถานะการกำหนดค่า',
-  cordis: 'สถานะ Cordis',
   unobserved: 'ยังไม่เมานต์',
   pending: 'กำลังรอการพึ่งพา',
   loadingPhase: 'กำลังโหลด',
   active: 'เมานต์แล้ว',
   failed: 'เมานต์ไม่สำเร็จ',
   unloading: 'กำลังยกเลิกการเมานต์',
-} satisfies Record<PluginInventoryLocaleKey, string>
+} satisfies Partial<Record<PluginInventoryLocaleKey, string>>
