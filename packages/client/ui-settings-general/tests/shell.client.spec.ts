@@ -93,12 +93,11 @@ describe('ui-settings apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const { sections } = injectedOf(b.slots).hooks
-    // This package registers the General, About, and MCP sections itself;
-    // every other section arrives from a feature registrant.
+    // This package registers the General section itself; every other section
+    // arrives from a feature registrant. About and MCP are parked with the
+    // host RPC port.
     const GENERAL = { id: 'general', order: 0, label: 'general.nav' }
-    const MCP = { id: 'mcp', order: 20, label: 'mcp.nav' }
-    const ABOUT = { id: 'about', order: 200, label: 'about.nav' }
-    expect(sections.getSnapshot()).toEqual([GENERAL, MCP, ABOUT])
+    expect(sections.getSnapshot()).toEqual([GENERAL])
     b.slots.register({ name: 'settings.section', id: 'z', order: 20, label: 'Z' } as never, () => null)
     // No order and no label: both projection defaults apply.
     b.slots.register({ name: 'settings.section', id: 'a' } as never, () => null)
@@ -106,9 +105,7 @@ describe('ui-settings apply', () => {
     expect(rows).toEqual([
       GENERAL,
       { id: 'a', order: 0, label: '' },
-      MCP,
       { id: 'z', order: 20, label: 'Z' },
-      ABOUT,
     ])
     // Snapshot identity is stable until the ledger moves (uSES contract).
     expect(sections.getSnapshot()).toBe(rows)
