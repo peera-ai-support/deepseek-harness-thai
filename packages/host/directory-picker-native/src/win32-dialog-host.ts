@@ -14,9 +14,10 @@ import type { Win32DialogWorkerData } from './win32-dialog-worker.ts'
 /**
  * Spawn the dialog child process. Built consumers launch the bundled CJS
  * entry next to this module under plain node; unbuilt (source) consumers
- * bootstrap tsx first, mirroring the dsh CLI's source launch. The dialog is
- * the child's first window, so Windows activates it without a foreground
- * call.
+ * bootstrap tsx first, mirroring the dsh CLI's source launch. The child
+ * still starts hidden (`windowsHide`); the bindings steal foreground onto
+ * the child thread so `IFileOpenDialog` can appear above the GUI process
+ * that received the click.
  * @param data - the child payload (dialog title).
  * @returns the spawned child process.
  */

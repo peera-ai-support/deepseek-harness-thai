@@ -750,7 +750,7 @@ describe('toStreamChunks', () => {
     ])
   })
 
-  it('maps thinking events to reasoning blocks', async () => {
+  it('lifts a thinking-only turn to text so the answer is not shown only under Think', async () => {
     const chunks = await collect(toStreamChunks(feed(
       { type: 'thinking_start', contentIndex: 0, partial: assistant() },
       { type: 'thinking_delta', contentIndex: 0, delta: 'mull', partial: assistant() },
@@ -758,9 +758,45 @@ describe('toStreamChunks', () => {
       { type: 'done', reason: 'stop', message: assistant() },
     )))
     expect(chunks.slice(0, 3)).toEqual([
+      { type: 'block-start', index: 0, blockType: 'text' },
+      { type: 'text-delta', index: 0, text: 'mull' },
+      { type: 'block-end', index: 0, block: { type: 'text', text: 'mull' } },
+    ])
+  })
+
+  it('keeps reasoning distinct when a text block follows', async () => {
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'thinking_start', contentIndex: 0, partial: assistant() },
+      { type: 'thinking_delta', contentIndex: 0, delta: 'mull', partial: assistant() },
+      { type: 'thinking_end', contentIndex: 0, content: 'mull', partial: assistant() },
+      { type: 'text_start', contentIndex: 1, partial: assistant() },
+      { type: 'text_delta', contentIndex: 1, delta: 'hi', partial: assistant() },
+      { type: 'text_end', contentIndex: 1, content: 'hi', partial: assistant() },
+      { type: 'done', reason: 'stop', message: assistant() },
+    )))
+    expect(chunks.slice(0, 6)).toEqual([
       { type: 'block-start', index: 0, blockType: 'reasoning' },
       { type: 'reasoning-delta', index: 0, text: 'mull' },
       { type: 'block-end', index: 0, block: { type: 'reasoning', text: 'mull' } },
+      { type: 'block-start', index: 1, blockType: 'text' },
+      { type: 'text-delta', index: 1, text: 'hi' },
+      { type: 'block-end', index: 1, block: { type: 'text', text: 'hi' } },
+    ])
+  })
+
+  it('keeps reasoning distinct when a tool call follows', async () => {
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'thinking_start', contentIndex: 0, partial: assistant() },
+      { type: 'thinking_end', contentIndex: 0, content: 'mull', partial: assistant() },
+      { type: 'toolcall_start', contentIndex: 1, partial: partialWithToolCall },
+      { type: 'toolcall_end', contentIndex: 1, toolCall: { type: 'toolCall', id: 'call-1', name: 'f', arguments: {} }, partial: partialWithToolCall },
+      { type: 'done', reason: 'toolUse', message: assistant({ content: partialWithToolCall.content, stopReason: 'toolUse' }) },
+    )))
+    expect(chunks.slice(0, 4)).toEqual([
+      { type: 'block-start', index: 0, blockType: 'reasoning' },
+      { type: 'block-end', index: 0, block: { type: 'reasoning', text: 'mull' } },
+      { type: 'block-start', index: 1, blockType: 'tool-call' },
+      { type: 'block-end', index: 1, block: { type: 'tool-call', id: 'call-1', name: 'f', arguments: '{}' } },
     ])
   })
 
@@ -1005,5 +1041,31 @@ describe('toStreamChunks defensive branches', () => {
       { type: 'done', reason: 'stop', message: assistant() },
     )))
     expect(chunks[0]).toEqual({ type: 'tool-call-delta', index: 0, id: '', argumentsDelta: '{}' })
+  })
+
+  it('recovers embedded tool calls from raw text when model hallucinated syntax', async () => {
+    const rawText = "Let's inspect lines!call:default_api:read{file_path:D:\\test.tsx,limit:100,offset:2940}"
+    const chunks = await collect(toStreamChunks(feed(
+      { type: 'start', partial: assistant() },
+      { type: 'text_start', contentIndex: 0, partial: assistant() },
+      { type: 'text_delta', contentIndex: 0, delta: rawText, partial: assistant() },
+      { type: 'text_end', contentIndex: 0, content: rawText, partial: assistant() },
+      { type: 'done', reason: 'stop', message: assistant({ content: [{ type: 'text', text: rawText }], stopReason: 'stop' }) },
+    )))
+    const toolCallBlock = chunks.find(c => c.type === 'block-end' && c.block.type === 'tool-call')
+    expect(toolCallBlock).toBeDefined()
+    if (toolCallBlock?.type === 'block-end' && toolCallBlock.block.type === 'tool-call') {
+      expect(toolCallBlock.block.name).toBe('read')
+      expect(JSON.parse(toolCallBlock.block.arguments)).toEqual({
+        file_path: 'D:\\test.tsx',
+        limit: 100,
+        offset: 2940,
+      })
+    }
+    const finish = chunks.find(c => c.type === 'finish')
+    expect(finish).toMatchObject({
+      type: 'finish',
+      reason: { kind: 'tool-calls' },
+    })
   })
 })

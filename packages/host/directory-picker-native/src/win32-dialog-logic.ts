@@ -31,8 +31,9 @@ export interface Win32FolderDialog {
    */
   setTitle(title: string): number
   /**
-   * `IModalWindow::Show` with no owner window; blocks the calling thread
-   * until the user selects or dismisses.
+   * `IModalWindow::Show` with no owner window. The bindings acquire
+   * foreground on this thread before the call. Blocks until the user
+   * selects or dismisses.
    * @returns the call's HRESULT (`HRESULT_CANCELLED` on dismissal).
    */
   show(): number

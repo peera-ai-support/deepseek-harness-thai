@@ -67,6 +67,11 @@ export interface IConversation {
    * @returns completion of the page pull.
    */
   loadOlder(): Promise<void>
+  /**
+   * Jump loader: page backwards until the window covers seq.
+   * @param seq - the target sequence number to page back to.
+   */
+  loadThrough(seq: number): Promise<void>
 }
 
 /** Create one browser-only image draft descriptor; only its id enters input state. */
@@ -513,6 +518,11 @@ export class ConversationController extends Service implements IConversation {
   /** Pull one older history page for the scoped Session. */
   async loadOlder(): Promise<void> {
     await this.scopedSession('loadOlder').loadOlder()
+  }
+
+  /** Jump loader: page backwards until the window covers seq. */
+  async loadThrough(seq: number): Promise<void> {
+    await this.scopedSession('loadThrough').loadThrough(seq)
   }
 
   /** Resolve the caller scope's session face or throw on root contexts. */

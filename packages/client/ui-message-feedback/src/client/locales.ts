@@ -43,3 +43,20 @@ export const en = {
   'error.load': 'Could not load feedback',
   'error.generic': 'Could not save feedback',
 } satisfies Record<MessageFeedbackKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'action.like': 'คำตอบที่ดี',
+  'action.likeActive': 'ยกเลิกคะแนน',
+  'action.dislike': 'คำตอบมีปัญหา',
+  'action.dislikeActive': 'ยกเลิกคะแนน',
+  'note.open': 'เพิ่มบันทึก',
+  'note.dialog': 'ข้อเสนอแนะ',
+  'note.placeholder': 'คำตอบนี้ดีอย่างไร หรือมีปัญหาตรงไหน? (ไม่บังคับ)',
+  'note.save': 'บันทึก',
+  'note.cancel': 'ยกเลิก',
+  'note.aria': 'บันทึกความคิดเห็น',
+  'error.conflict': 'ความคิดเห็นนี้ถูกแก้ไขจากที่อื่น กำลังแสดงสถานะล่าสุด',
+  'error.load': 'โหลดสถานะความคิดเห็นไม่สำเร็จ',
+  'error.generic': 'บันทึกความคิดเห็นไม่สำเร็จ',
+} satisfies Record<MessageFeedbackKey, string>

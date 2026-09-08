@@ -18,6 +18,7 @@ import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
+import type { McpServerToolInfo } from './status.ts'
 import { isImageAdmissionError } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore, ImageAttachmentRef, ImageMediaType, SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
@@ -146,9 +147,11 @@ export async function syncTools(
   ctx: Context,
   opts: ToolBridgeOptions,
   previous: ToolDisposers,
+  onToolsDiscovered?: (tools: McpServerToolInfo[]) => void,
 ): Promise<ToolDisposers> {
   // Phase 1: fetch and build the next generation without touching the registry.
   const definitions = new Map<string, ToolDefinition>()
+  const toolInfos: McpServerToolInfo[] = []
   let cursor: string | undefined
   do {
     const response = await listToolsUncached(client, cursor)
@@ -159,6 +162,11 @@ export async function syncTools(
           `mcp-client(${opts.serverName}): server listed tool "${tool.name}" more than once — invalid tool list`,
         )
       }
+      toolInfos.push({
+        name: publicName,
+        rawName: tool.name,
+        ...tool.description !== undefined ? { description: tool.description } : {},
+      })
       definitions.set(publicName, createDefinition(
         client,
         ctx,
@@ -181,12 +189,14 @@ export async function syncTools(
     for (const [publicName, definition] of definitions) {
       disposers.set(publicName, ctx.tools.register(definition))
     }
+    onToolsDiscovered?.(toolInfos)
   } catch (error) {
     // A conflict on an `mcp__<serverName>__`-qualified name means a foreign
     // registration occupies this server's namespace. Roll back so the model
     // sees either the full generation or none of it — never a partial set.
     for (const dispose of disposers.values()) dispose()
     ctx.logger.error(`mcp-client(${opts.serverName}): tool registration failed, no tools registered: ${String(error)}`)
+    onToolsDiscovered?.([])
     if (opts.registrationFailure === 'throw') throw error
     return new Map()
   }

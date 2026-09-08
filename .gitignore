@@ -44,3 +44,16 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 native/system/test/bin/
+
+# Local desktop build outputs and generated artifacts
+.desktop-dist/
+desktop-dist/
+desktop-host/bin/
+desktop-host/obj/
+assets/icons/generator/bin/
+assets/icons/generator/obj/
+packages/subprocess/subprocess/src/*.js
+packages/subprocess/subprocess/src/*.js.map
+packages/subprocess/subprocess/src/*.d.ts
+packages/subprocess/subprocess/src/*.d.ts.map
+.zcode/

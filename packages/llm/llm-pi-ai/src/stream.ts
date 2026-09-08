@@ -31,6 +31,80 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
+/**
+ * Re-spell a reasoning block's chunks as a text block, keeping the block
+ * index and content; used only when a turn carried no text at all.
+ * @param chunk - a reasoning block-start/delta/end chunk.
+ * @returns the same chunk re-spelled as text.
+ */
+function promoteReasoningToText(chunk: StreamChunk): StreamChunk {
+  switch (chunk.type) {
+    case 'block-start':
+      return chunk.blockType === 'reasoning' ? { ...chunk, blockType: 'text' } : chunk
+    case 'reasoning-delta':
+      return { type: 'text-delta', index: chunk.index, text: chunk.text }
+    case 'block-end':
+      return chunk.block.type === 'reasoning'
+        ? { type: 'block-end', index: chunk.index, block: { type: 'text', text: chunk.block.text } }
+        : chunk
+    default:
+      return chunk
+  }
+}
+
+/**
+ * Extract hallucinated text-embedded tool calls emitted by models (e.g. Gemini)
+ * that output `call:default_api:read{...}` or `call:read{...}` into plain text.
+ * @param rawText - the accumulated text of a text block.
+ * @returns extracted tool call parameters or null if no valid call pattern is found.
+ */
+export function extractEmbeddedToolCall(rawText: string): {
+  leadText: string
+  toolName: string
+  argumentsJson: string
+} | null {
+  if (!rawText || (!rawText.includes('call:') && !rawText.includes('default_api:'))) return null
+  const match = rawText.match(/([\s\S]*?)(?:!|\s|^)?(?:call:)(?:default_api:)?([a-zA-Z0-9_\-]+)\s*\{([\s\S]*?)\}([\s\S]*)/)
+  if (!match) return null
+
+  const leadText = match[1]?.trim() ?? ''
+  let toolName = match[2] ?? ''
+  if (toolName.startsWith('default_api:')) {
+    toolName = toolName.slice('default_api:'.length)
+  }
+  const argsRaw = match[3] ?? ''
+
+  let args: Record<string, unknown> = {}
+  try {
+    args = JSON.parse('{' + argsRaw + '}') as Record<string, unknown>
+  } catch {
+    const kvRegex = /([a-zA-Z0-9_]+)\s*:\s*([^,]+?)(?=(?:,\s*[a-zA-Z0-9_]+\s*:|$))/g
+    let m: RegExpExecArray | null = kvRegex.exec(argsRaw)
+    while (m !== null) {
+      const key = m[1]?.trim() ?? ''
+      let val: unknown = m[2]?.trim() ?? ''
+      const strVal = String(val)
+      if ((strVal.startsWith('"') && strVal.endsWith('"')) || (strVal.startsWith("'") && strVal.endsWith("'"))) {
+        val = strVal.slice(1, -1)
+      } else if (!isNaN(Number(val)) && strVal !== '') {
+        val = Number(val)
+      } else if (val === 'true') {
+        val = true
+      } else if (val === 'false') {
+        val = false
+      }
+      if (key) args[key] = val
+      m = kvRegex.exec(argsRaw)
+    }
+  }
+
+  return {
+    leadText,
+    toolName,
+    argumentsJson: JSON.stringify(args),
+  }
+}
+
 // XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
 // (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
 // error.message : JSON.stringify(error)`), discarding the original Error and its
@@ -149,29 +223,76 @@ export async function* toStreamChunks(
   // in stream order), but we track ids per index for tool calls.
   const toolIds = new Map<number, { id: string; name: string }>()
 
+  // Reasoning blocks are held until the turn's kind is known: a model that
+  // answers its whole reply inside a `thinking` block (some anthropic-messages
+  // gateways leak the answer there and emit no text) would otherwise render
+  // its answer only under the folded Think section. When a text block or a
+  // tool call arrives the thinking is flushed as reasoning, unchanged; a turn
+  // that produces nothing but thinking is lifted to text so the answer shows.
+  let pendingReasoning: StreamChunk[] = []
+  let textSeen = false
+  let toolSeen = false
+  function* drainPending(as: 'reasoning' | 'text'): Generator<StreamChunk> {
+    for (const chunk of pendingReasoning) {
+      yield as === 'reasoning' ? chunk : promoteReasoningToText(chunk)
+    }
+    pendingReasoning = []
+  }
+
   for await (const event of events) {
     switch (event.type) {
       case 'start':
         break
       case 'text_start':
+        yield* drainPending('reasoning')
+        textSeen = true
         yield { type: 'block-start', index: event.contentIndex, blockType: 'text' }
         break
       case 'text_delta':
         yield { type: 'text-delta', index: event.contentIndex, text: event.delta }
         break
-      case 'text_end':
-        yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: event.content } }
+      case 'text_end': {
+        const recovered = !toolSeen ? extractEmbeddedToolCall(event.content) : null
+        if (recovered) {
+          yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: recovered.leadText } }
+          const toolIndex = event.contentIndex + 1
+          const callId = brandString<ToolCallId>(`${recovered.toolName}-${Date.now()}-0`)
+          toolSeen = true
+          yield { type: 'block-start', index: toolIndex, blockType: 'tool-call' }
+          yield {
+            type: 'tool-call-delta',
+            index: toolIndex,
+            id: callId,
+            name: recovered.toolName,
+            argumentsDelta: recovered.argumentsJson,
+          }
+          yield {
+            type: 'block-end',
+            index: toolIndex,
+            block: {
+              type: 'tool-call',
+              id: callId,
+              name: recovered.toolName,
+              arguments: recovered.argumentsJson,
+            },
+          }
+        } else {
+          yield { type: 'block-end', index: event.contentIndex, block: { type: 'text', text: event.content } }
+        }
         break
+      }
       case 'thinking_start':
-        yield { type: 'block-start', index: event.contentIndex, blockType: 'reasoning' }
+        pendingReasoning.push({ type: 'block-start', index: event.contentIndex, blockType: 'reasoning' })
         break
       case 'thinking_delta':
-        yield { type: 'reasoning-delta', index: event.contentIndex, text: event.delta }
+        pendingReasoning.push({ type: 'reasoning-delta', index: event.contentIndex, text: event.delta })
         break
       case 'thinking_end':
-        yield { type: 'block-end', index: event.contentIndex, block: { type: 'reasoning', text: event.content } }
+        pendingReasoning.push({ type: 'block-end', index: event.contentIndex, block: { type: 'reasoning', text: event.content } })
         break
       case 'toolcall_start': {
+        yield* drainPending('reasoning')
+        toolSeen = true
         // The id/name live on the partial's content at this index.
         const partial = event.partial.content[event.contentIndex]
         const id = partial?.type === 'toolCall' ? partial.id : ''
@@ -205,14 +326,20 @@ export async function* toStreamChunks(
           },
         }
         break
-      case 'done':
+      case 'done': {
+        yield* drainPending(textSeen || toolSeen ? 'reasoning' : 'text')
         yield { type: 'usage', usage: mapUsage(event.message.usage) }
+        const normalReason = mapStopReason(event.message, contextWindow)
+        const reason: FinishReason = normalReason.kind === 'stop' && toolSeen
+          ? { kind: 'tool-calls' }
+          : normalReason
         yield {
           type: 'finish',
-          reason: mapStopReason(event.message, contextWindow),
+          reason,
           replayState: toPiReplayState(event.message, requestedModel),
         }
         return
+      }
       case 'error':
         // In-stream error delivery (pi-ai's style) → error finish chunk
         // (the harness's other sanctioned error path besides throwing).

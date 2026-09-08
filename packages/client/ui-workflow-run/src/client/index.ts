@@ -24,7 +24,7 @@ export const inject = ['uiConversation', 'slots', 'sessions', 'locale']
 /** Register the workflow Definition, dictionary, and keyed Chat renderer. */
 export function apply(ctx: ClientContext): void {
   ctx.uiConversation.events.register(workflowRunDefinition)
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workflow-run: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, th }), 'ui-workflow-run: dictionaries')
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'workflow-run',

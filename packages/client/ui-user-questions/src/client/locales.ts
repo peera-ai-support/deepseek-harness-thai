@@ -40,3 +40,22 @@ export const en = {
   'plan.decline': 'Refuse',
   'plan.discuss': 'Chat about it',
 } satisfies Record<QuestionKey, string>
+
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th = {
+  'error.incomplete': 'กรุณาตอบคำถามนี้ให้เรียบร้อยก่อน',
+  'error.unanswered': 'กรุณาเลือกตัวเลือกหรือกรอกคำตอบของคุณ',
+  'nav.prev': 'คำถามก่อนหน้า',
+  'nav.next': 'คำถามถัดไป',
+  'nav.minimize': 'ย่อการ์ดคำถาม',
+  'nav.maximize': 'ขยายการ์ดคำถาม',
+  'nav.cancel': 'ยกเลิกชุดคำถามทั้งหมด',
+  'option.recommended': 'แนะนำ',
+  'custom.placeholder': 'พิมพ์คำตอบของคุณ',
+  'action.skip': 'ข้ามคำถามนี้',
+  'action.next': 'ถัดไป',
+  'plan.header': 'ตรวจสอบแผนงาน',
+  'plan.approve': 'อนุมัติ',
+  'plan.decline': 'ปฏิเสธ',
+  'plan.discuss': 'คุยรายละเอียดในแชท',
+} satisfies Record<QuestionKey, string>

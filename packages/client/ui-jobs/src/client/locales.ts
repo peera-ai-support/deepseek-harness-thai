@@ -41,5 +41,25 @@ export const en: Record<JobKey, string> = {
   'duration.title.done': 'Took {duration}',
 }
 
+/** Thai dictionary, checked complete against the shipped key set. */
+export const th: Record<JobKey, string> = {
+  'count.live.one': '{count} งานเบื้องหลังกำลังทำงาน',
+  'count.live.other': '{count} งานเบื้องหลังกำลังทำงาน',
+  'count.idle.one': '{count} งานเบื้องหลัง',
+  'count.idle.other': '{count} งานเบื้องหลัง',
+  'list.aria': 'งานเบื้องหลัง',
+  'status.running': 'กำลังทำงาน',
+  'status.stopping': 'กำลังหยุด',
+  'status.completed': 'เสร็จสิ้น',
+  'status.killed': 'ยกเลิกแล้ว',
+  'status.failed': 'ล้มเหลว',
+  'duration.seconds': '{seconds}วิ',
+  'duration.minutes': '{minutes}นาที {seconds}วิ',
+  'duration.hours': '{hours}ชม. {minutes}นาที',
+  'duration.title.live': 'ทำงานมาแล้ว {duration}',
+  'duration.title.done': 'ใช้เวลา {duration}',
+}
+
+
 /** Key domain of the `job` namespace (zh is the source of truth). */
 export type JobKey = keyof typeof zh
