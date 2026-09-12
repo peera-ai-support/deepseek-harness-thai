@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-09-01-in-app-update-apply.zh.md)
+
 ## Problem
 
 The Thai Windows desktop app shipped as a ZIP download, so an installed copy had no `.git`. The About page's update check (`host.updateCheck`) therefore could neither see newer releases nor apply them: `git fetch --tags` on a non-repo errors, and there was no RPC to perform an update. Two latent bugs also made the existing check unreliable: the latest release was resolved with a hardcoded `origin/master` (the publish repo's default branch is `thai`), and tag normalization only stripped `dsh-v`/`v`, not the `thai-` prefix the publish repo uses — so the check compared `thai-0.1.1-rc.2` against `0.1.1-rc.2` and reported a phantom update when none existed.
