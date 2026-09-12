@@ -25,6 +25,8 @@ const ENGLISH_SUMMARY_HEADER = new RegExp(
 
 /**
  * Check if text begins with an agentic scratchpad / monologue prefix.
+ * @param text - assistant message text to test.
+ * @returns true when the first non-space run matches a scratchpad opener.
  */
 export function isAgentScratchpad(text: string): boolean {
   if (!text || typeof text !== 'string') return false

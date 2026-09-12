@@ -21,6 +21,7 @@ export interface TurnRailItem {
     | { readonly kind: 'unloaded'; readonly seq: number }
 }
 
+/** One loaded turn: its anchor key plus the previews the rail renders for it. */
 export interface LoadedRailItem {
   readonly turn: number
   readonly anchorKey: string

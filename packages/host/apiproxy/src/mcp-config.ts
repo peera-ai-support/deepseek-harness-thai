@@ -22,12 +22,19 @@ const ENV_INTERP = /\$\{process\.env\.([A-Za-z_][A-Za-z0-9_]*)\}/
 /** Business rejection raised by {@link validateServerEntry}; callers map it to `mcp-config-invalid`. */
 export class McpConfigError extends Error {}
 
-/** Absolute path of the home-level user patch file. */
+/**
+ * Absolute path of the home-level user patch file.
+ * @returns the path of `$DSH_HOME/cordis.patch.yml`.
+ */
 export function mcpPatchPath(): string {
   return join(resolveDshHome(), 'cordis.patch.yml')
 }
 
-/** Read the home patch text; an absent file is an empty document. */
+/**
+ * Read the home patch text; an absent file is an empty document.
+ * @param file - patch file to read; defaults to {@link mcpPatchPath}.
+ * @returns the file text, or `''` when the file does not exist.
+ */
 export function loadMcpPatch(file = mcpPatchPath()): string {
   try {
     return readFileSync(file, 'utf8')
@@ -37,7 +44,11 @@ export function loadMcpPatch(file = mcpPatchPath()): string {
   }
 }
 
-/** Write the home patch atomically (tmp + rename) so a concurrent HMR read sees a whole file. */
+/**
+ * Write the home patch atomically (tmp + rename) so a concurrent HMR read sees a whole file.
+ * @param text - the complete patch text to write.
+ * @param file - destination; defaults to {@link mcpPatchPath}.
+ */
 export function storeMcpPatch(text: string, file = mcpPatchPath()): void {
   const tmp = join(dirname(file), '.cordis.patch.yml.tmp')
   writeFileSync(tmp, text, 'utf8')
@@ -223,7 +234,11 @@ function parseEntryConfig(entryLines: readonly string[]): McpServerEntry | null 
   return entry
 }
 
-/** Parse every managed MCP row of the home patch text. */
+/**
+ * Parse every managed MCP row of the home patch text.
+ * @param text - home patch text to scan.
+ * @returns each managed row the parser could read; unreadable managed rows are skipped.
+ */
 export function parseMcpPatch(text: string): McpServerEntry[] {
   const { entries } = splitRawEntries(text.split(/\r?\n/))
   const servers: McpServerEntry[] = []
@@ -341,6 +356,9 @@ function serializeEntry(entry: McpServerEntry): string[] {
  * {@link servers}; every other row, preamble comment, and trailing content
  * survives verbatim. A managed row missing from `servers` is removed; a
  * managed row the parser could not read stays as-is (never silently dropped).
+ * @param text - the patch text to rebuild.
+ * @param servers - the managed rows that should exist after the rebuild.
+ * @returns the rebuilt text, ending in exactly one newline.
  */
 export function rebuildMcpPatchText(text: string, servers: readonly McpServerEntry[]): string {
   const lines = text.split(/\r?\n/)
@@ -379,6 +397,8 @@ export function rebuildMcpPatchText(text: string, servers: readonly McpServerEnt
 /**
  * Validate one entry for save: identity patterns, transport-required
  * fields, and uniqueness against the other live rows.
+ * @param entry - the row being saved.
+ * @param others - the other live rows it must not collide with.
  * @throws {@link McpConfigError} with the first violation.
  */
 export function validateServerEntry(entry: McpServerEntry, others: readonly McpServerEntry[]): void {

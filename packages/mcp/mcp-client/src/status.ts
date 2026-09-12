@@ -49,7 +49,11 @@ export interface McpStatusSink {
 export class McpStatusStore {
   private readonly statuses = new Map<string, McpServerStatus>()
 
-  /** Get the sink for one server. */
+  /**
+   * Get the sink for one server.
+   * @param serverName - namespace the instance publishes its tools under.
+   * @returns the sink that replaces or removes this server's status.
+   */
   handle(serverName: string): McpStatusSink {
     return {
       update: (status) => {
@@ -61,7 +65,10 @@ export class McpStatusStore {
     }
   }
 
-  /** Current snapshot, serverName-sorted for deterministic display. */
+  /**
+   * Current snapshot, serverName-sorted for deterministic display.
+   * @returns every server's latest status.
+   */
   snapshot(): McpServerStatus[] {
     return [...this.statuses.values()].sort((a, b) => a.serverName.localeCompare(b.serverName))
   }
@@ -70,7 +77,11 @@ export class McpStatusStore {
 /** Lazy-per-app store: created on first mcp-client activation, never disposed. */
 const rootStores = new WeakMap<Context, McpStatusStore>()
 
-/** The app-scoped shared store (created and provided once per root; later instances register into it). */
+/**
+ * The app-scoped shared store (created and provided once per root; later instances register into it).
+ * @param ctx - any context in the app tree; the store is keyed on its root.
+ * @returns the root's shared store, created and provided on the first call.
+ */
 export function statusStoreFor(ctx: Context): McpStatusStore {
   let store = rootStores.get(ctx.root)
   if (store === undefined) {

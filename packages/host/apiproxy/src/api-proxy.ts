@@ -1049,12 +1049,6 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
   }
 }
 
-/**
- * Implement ApiProxy over a composed host context.
- * @param ctx - a context with the Host spine and Workspace registry mounted.
- * @param defaults - host routing and project-directory defaults.
- * @returns the ApiProxy implementation.
- */
 /** promisified execFile: stdout/stderr strings, options (cwd/env/timeout/signal) applied per call. */
 const execFileAsync = promisify(execFile)
 
@@ -1063,6 +1057,7 @@ const execFileAsync = promisify(execFile)
  * pnpm-workspace.yaml and package.json. `from` defaults to this module's
  * directory (this package's src or lib output, always inside the checkout),
  * so the answer is independent of the caller's cwd.
+ * @param from - directory the walk starts at; defaults to this module's own directory.
  * @returns the checkout root, or undefined when the installation is not a checkout.
  */
 export function findAppRoot(from = dirname(fileURLToPath(import.meta.url))): string | undefined {
@@ -1089,6 +1084,8 @@ function readAppVersion(appRoot: string): string {
 /**
  * Strip the release tag prefix (`dsh-v`, `v`, `thai-`) so tags compare against
  * package.json versions. The publish repo tags releases `thai-<version>`.
+ * @param tag - a release tag as the remote reports it.
+ * @returns the bare version the tag names.
  */
 export function normalizeVersionTag(tag: string): string {
   return tag.replace(/^dsh-v/i, '').replace(/^thai-/i, '').replace(/^v/i, '')
@@ -1172,8 +1169,12 @@ function git(repoRoot: string, signal: AbortSignal, timeout: number): (args: str
   ).then(result => result.stdout.trim())
 }
 
-
-
+/**
+ * Implement ApiProxy over a composed host context.
+ * @param ctx - a context with the Host spine and Workspace registry mounted.
+ * @param defaults - host routing and project-directory defaults.
+ * @returns the ApiProxy implementation.
+ */
 export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiProxy {
   const sessionExportCompressionLevel = defaults.sessionExportCompressionLevel
     ?? DEFAULT_SESSION_LOG_COMPRESSION_LEVEL

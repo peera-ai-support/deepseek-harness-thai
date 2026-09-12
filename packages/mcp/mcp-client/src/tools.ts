@@ -138,6 +138,8 @@ export function publicToolName(serverName: string, rawName: string): string {
  * @param opts - Bridge options: server namespace and per-call timeout.
  * @param previous - Disposer map from the prior sync generation; disposed
  *   during the swap phase (only after the fetch phase succeeded).
+ * @param onToolsDiscovered - called with the tools this generation discovered,
+ *   before the registry swap.
  * @returns A map of registered public tool names to their unregister
  *   disposers — the exact set of live registrations owned by this server.
  */
