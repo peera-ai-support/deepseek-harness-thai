@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-win32-folder-dialog-foreground.md
-2026-08-21-win32-folder-dialog-foreground.md: f1248cea9c9f6229a2118aab9102a784e50a032a
-2026-08-21-win32-folder-dialog-foreground.zh.md: 8242948748072fb3d344447a37c766b5888431a9
+2026-08-21-win32-folder-dialog-foreground.md: 06d85c19a160af5e370927b80f807a5ba86e2bc8
+2026-08-21-win32-folder-dialog-foreground.zh.md: 9f6c694049279d9d52c0c78148c51b13f17695b4

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-09-thai-fork-port-to-0.1.5.md
-2026-09-09-thai-fork-port-to-0.1.5.md: f4e553f1949bfe46cb335de225906d471aa12578
-2026-09-09-thai-fork-port-to-0.1.5.zh.md: ced5425479cd8abe2ac9373458b84d6b673df3b4
+2026-09-09-thai-fork-port-to-0.1.5.md: fbe7a89a4dedb2915cd96aca570d2d155873d7bb
+2026-09-09-thai-fork-port-to-0.1.5.zh.md: 6476260154dd41d4c81f7d41c935a676e81158ec

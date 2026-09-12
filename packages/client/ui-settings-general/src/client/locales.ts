@@ -34,6 +34,7 @@ export const en = {
   'connection.reconnect': 'Disconnected, reconnect now',
   'connection.restart': 'Reconnecting automatically, reconnect now',
 } satisfies Record<SettingsKey, string>
+/** Thai dictionary; untranslated keys fall back to English. */
 export const th = {
   'trigger': 'การตั้งค่า',
   'title': 'การตั้งค่า',

@@ -14,7 +14,7 @@ English | [中文](2026-08-21-win32-folder-dialog-foreground.zh.md)
 
 Superseded on the 0.1.5 port branch: `dsh-v0.1.5-rc.2` activates the dialog with a [synthesized Alt press](2026-09-07-win32-picker-foreground-alt-key.md), whose Alternatives section rejects the `AttachThreadInput` mechanism this note chose, so the owner-window code is not in the port's tree. What this note records is the 0.1.1 `thai` branch's behavior.
 
-The WebView2 desktop wrapper additionally pins the browse interaction (`desktop-host/pin-browse-picker.overlay.yml` via `dsh web --patch`) so that wrapper uses the in-app directory dialog, which does not depend on OS foreground rules. The overlay matches `apps/web/tests/pin-browse-picker.overlay.yml`. A server already listening on the desktop port without the overlay still uses `-auto` (native on loopback win32); the owner-window path covers that process.
+The WebView2 desktop wrapper can additionally pin the browse interaction (`desktop-host/pin-browse-picker.overlay.yml` via `dsh web --patch`) so the wrapper uses the in-app directory dialog, which does not depend on OS foreground rules; the overlay rows match `apps/web/tests/pin-browse-picker.overlay.yml`. No shipped launcher passes it: `launch-desktop.ps1` runs `dsh web --port <port> --no-open`, so the wrapper keeps `-auto` (native on loopback win32) and relies on the owner-window path above. The overlay is parked as `desktop-host/pin-browse-picker.overlay.yml.disabled` for a launcher that needs it.
 
 ## Alternatives considered
 

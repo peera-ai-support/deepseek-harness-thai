@@ -339,6 +339,7 @@ export const en = {
   'terminal.session': 'Terminal {sessionId}',
 } satisfies Record<ConversationKey, string>
 
+/** Thai dictionary; untranslated keys fall back to English. */
 export const th = {
   'hint.plan': PLAN_NEXT_ACTION_TH,
   'hint.goal': 'ระบุเป้าหมายสำหรับการทำงานต่อเนื่องระยะยาว',

@@ -143,6 +143,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
 export { presetDisplayText } from '@deepseek-ai/dsh-agent-presets/display'
 export type { PresetDisplaySource, PresetDisplayText } from '@deepseek-ai/dsh-agent-presets/display'
 
+/** Thai dictionary; untranslated keys fall back to English. */
 export const th: Partial<Record<AgentPresetSettingsKey, string>> = {
   error: 'ไม่สามารถโหลดโปรไฟล์เอเจนต์ได้',
   userTrust: 'กำหนดเอง',

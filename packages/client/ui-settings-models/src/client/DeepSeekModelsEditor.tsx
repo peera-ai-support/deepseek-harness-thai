@@ -17,7 +17,20 @@ import styles from './ModelsSection.module.css'
 export type DeepSeekModelDraft = Record<string, unknown>
 
 /** The catalog fields this editor writes. */
-type CatalogField = 'id' | 'name' | 'contextWindow' | 'maxTokens'
+type CatalogField = 'id' | 'name' | 'contextWindow' | 'maxTokens' | 'inputModalities' | 'input'
+
+/**
+ * Determine whether a catalog row advertises image input.
+ * @param model - the catalog entry draft.
+ * @returns true when image modality is present in its configured input modalities.
+ */
+export function imagesSupported(model: DeepSeekModelDraft): boolean {
+  for (const field of ['inputModalities', 'input']) {
+    const value = model[field]
+    if (Array.isArray(value)) return (value as readonly string[]).includes('image')
+  }
+  return false
+}
 
 /** The two token counts edited as K/M-suffixed text behind a row's disclosure. */
 type CapacityField = 'contextWindow' | 'maxTokens'
@@ -172,6 +185,12 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
       return copy
     })
     props.onChange(next)
+  }
+
+  const toggleImage = (index: number, supported: boolean): void => {
+    const row = props.models[index]
+    const field: CatalogField = Array.isArray(row?.['input']) ? 'input' : 'inputModalities'
+    update(index, field, supported ? ['text', 'image'] : ['text'])
   }
 
   const remove = (index: number): void => {
@@ -343,6 +362,16 @@ export function DeepSeekModelsEditor(props: DeepSeekModelsEditorProps): ReactNod
                     <div className={styles['modelAdvanced']}>
                       {capacityField(model, index, 'contextWindow', props.defaultContextWindow)}
                       {capacityField(model, index, 'maxTokens', props.defaultMaxTokens)}
+                      <label className={styles['modelToggle']}>
+                        <span className={styles['modelFieldLabel']}>{props.t('modelImageSupport')}</span>
+                        <input
+                          type="checkbox"
+                          checked={imagesSupported(model)}
+                          aria-label={`${props.t('modelImageSupport')} ${String(index + 1)}`}
+                          disabled={props.disabled}
+                          onChange={(event) => { toggleImage(index, event.target.checked) }}
+                        />
+                      </label>
                     </div>
                   )
                   : null}

@@ -3019,22 +3019,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
 /** Every harness event, sorted by name. */
 export const EVENT_API: readonly EventApiEntry[] = [
   {
-    name: 'agent-loop/config-start-failed',
-    mode: 'emit',
-    signature: '\'agent-loop/config-start-failed\'(payload: { sessionId: SessionId; error: unknown }): void',
-    summary: 'A declarative agent entry failed before it could publish a live agent.',
-    description: 'A declarative agent entry failed before it could publish a live agent. Consumers that buffer work for the configured identity use this transient signal to reject that work instead of waiting forever. Normal factory teardown suppresses failures from the cancelled startup attempt.',
-    parameters: [{ name: 'payload', description: '.error - persistence, setup, or publication failure.' }],
-  },
-  {
-    name: 'agent-preset/selected',
-    mode: 'emit',
-    signature: '\'agent-preset/selected\'(sessionId: SessionId, agentPreset: string): void',
-    summary: 'One session committed a different agent preset to its durable log.',
-    description: 'One session committed a different agent preset to its durable log. Consumers invalidate only state derived from that session\'s composition.',
-    parameters: [{ name: 'sessionId', description: 'the session whose composition changed.' }, { name: 'agentPreset', description: 'the preset recorded by the committed selection.' }],
-  },
-  {
     name: 'agent/assistant-stream',
     mode: 'emit',
     signature: '\'agent/assistant-stream\'(this: Scoped<Agent>, payload: { agent: Agent; frame: AssistantStreamFrame }): void',
@@ -3089,6 +3073,22 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'One message entered the live inbox.',
     description: 'One message entered the live inbox.',
     parameters: [{ name: 'payload', description: '.message - the inserted message. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.' }],
+  },
+  {
+    name: 'agent-loop/config-start-failed',
+    mode: 'emit',
+    signature: '\'agent-loop/config-start-failed\'(payload: { sessionId: SessionId; error: unknown }): void',
+    summary: 'A declarative agent entry failed before it could publish a live agent.',
+    description: 'A declarative agent entry failed before it could publish a live agent. Consumers that buffer work for the configured identity use this transient signal to reject that work instead of waiting forever. Normal factory teardown suppresses failures from the cancelled startup attempt.',
+    parameters: [{ name: 'payload', description: '.error - persistence, setup, or publication failure.' }],
+  },
+  {
+    name: 'agent-preset/selected',
+    mode: 'emit',
+    signature: '\'agent-preset/selected\'(sessionId: SessionId, agentPreset: string): void',
+    summary: 'One session committed a different agent preset to its durable log.',
+    description: 'One session committed a different agent preset to its durable log. Consumers invalidate only state derived from that session\'s composition.',
+    parameters: [{ name: 'sessionId', description: 'the session whose composition changed.' }, { name: 'agentPreset', description: 'the preset recorded by the committed selection.' }],
   },
   {
     name: 'agent/pre-step',
@@ -3339,14 +3339,6 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'options', description: 'the full request. A LOOP-built request carries the process-local {@link markAgentLoopRequest} identity and arrives deep-frozen (mutation throws): its content is a pure function of the session log (the reconstructability Agent Note), so listeners read it, never rewrite it. Hand-built calls do not carry that marker; their messages already obey the immutable creation contract.' }],
   },
   {
-    name: 'session-telemetry/record',
-    mode: 'waterfall',
-    signature: '\'session-telemetry/record\'(record: SessionTelemetryRecord, next: () => SessionTelemetryRecord): SessionTelemetryRecord',
-    summary: 'Transform one outbound record before it reaches the backend.',
-    description: 'Transform one outbound record before it reaches the backend. This waterfall is the Service Definition\'s redaction extension point. It ships NO rules of its own: the innermost `next()` passes the record through unchanged, and with no listener mounted records reach the backend as captured, so exported data is exactly as clean as the rules a deployment mounts. Listeners stack by transforming `next()`\'s return value; returning without `next()` replaces everything beneath. Dispatched synchronously on the capture hot path inside the coordinator\'s containment: a throwing listener withholds that one record (fail-closed) and never reaches the agent loop. Live capture dispatches at append time; on-demand capture dispatches while reading the canonical log. Redaction applies to the exported copy only; the canonical session log is never rewritten.',
-    parameters: [{ name: 'record', description: 'the candidate record, already the coordinator\'s own deep copy; listeners return a (possibly new) record and must not mutate it.' }],
-  },
-  {
     name: 'session/created',
     mode: 'emit',
     signature: '\'session/created\'(this: Scoped<Session>, session: Session): void',
@@ -3377,6 +3369,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Awaited parallel durability checkpoint: every listener runs and the caller awaits all of them, with no waterfall veto.',
     description: 'Awaited parallel durability checkpoint: every listener runs and the caller awaits all of them, with no waterfall veto. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`) reuses the session\'s owner scope.',
     parameters: [{ name: 'session', description: 'the session whose buffered events must reach durable storage.' }],
+  },
+  {
+    name: 'session-telemetry/record',
+    mode: 'waterfall',
+    signature: '\'session-telemetry/record\'(record: SessionTelemetryRecord, next: () => SessionTelemetryRecord): SessionTelemetryRecord',
+    summary: 'Transform one outbound record before it reaches the backend.',
+    description: 'Transform one outbound record before it reaches the backend. This waterfall is the Service Definition\'s redaction extension point. It ships NO rules of its own: the innermost `next()` passes the record through unchanged, and with no listener mounted records reach the backend as captured, so exported data is exactly as clean as the rules a deployment mounts. Listeners stack by transforming `next()`\'s return value; returning without `next()` replaces everything beneath. Dispatched synchronously on the capture hot path inside the coordinator\'s containment: a throwing listener withholds that one record (fail-closed) and never reaches the agent loop. Live capture dispatches at append time; on-demand capture dispatches while reading the canonical log. Redaction applies to the exported copy only; the canonical session log is never rewritten.',
+    parameters: [{ name: 'record', description: 'the candidate record, already the coordinator\'s own deep copy; listeners return a (possibly new) record and must not mutate it.' }],
   },
   {
     name: 'settings/document-updated',

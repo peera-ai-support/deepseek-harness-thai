@@ -14,7 +14,7 @@ Status: implemented
 
 在 0.1.5 移植分支上已被取代：`dsh-v0.1.5-rc.2` 用[合成 Alt 按键](2026-09-07-win32-picker-foreground-alt-key.zh.md)激活对话框，其“曾考虑的替代方案”一节否决了本注记所选的 `AttachThreadInput` 机制，因此 owner 窗口代码不在移植分支的树里。本注记记录的是 0.1.1 `thai` 分支的行为。
 
-WebView2 桌面封装额外钉死 browse 交互（通过 `dsh web --patch` 加载 `desktop-host/pin-browse-picker.overlay.yml`），使该封装使用应用内目录对话框，而不依赖操作系统前台规则。该 overlay 与 `apps/web/tests/pin-browse-picker.overlay.yml` 一致。若桌面端口上已有未带 overlay 的服务器在听，仍使用 `-auto`（回环 win32 上为 native）；owner 窗口路径覆盖该进程。
+WebView2 桌面封装也可以额外钉死 browse 交互（通过 `dsh web --patch` 加载 `desktop-host/pin-browse-picker.overlay.yml`），使该封装使用应用内目录对话框，而不依赖操作系统前台规则；其 overlay 配置行与 `apps/web/tests/pin-browse-picker.overlay.yml` 一致。当前没有随附的启动器会传入它：`launch-desktop.ps1` 运行的是 `dsh web --port <port> --no-open`，因此封装仍使用 `-auto`（回环 win32 上为 native），并依赖上面的 owner 窗口路径。该 overlay 停放在 `desktop-host/pin-browse-picker.overlay.yml.disabled`，供需要它的启动器使用。
 
 ## Alternatives considered
 

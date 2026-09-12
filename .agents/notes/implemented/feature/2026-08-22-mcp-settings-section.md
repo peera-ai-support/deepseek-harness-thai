@@ -26,6 +26,20 @@ Unmodeled config keys (e.g. reconnect timeouts) are carried as raw `extra` lines
 - `@deepseek-ai/dsh-home-paths` became a dependency of the host apiproxy (respects `$DSH_HOME`).
 - Locale: new `mcp.*` keys in zh/en/th with compile-enforced parity.
 
+## Alternatives considered
+
+**Keep hand-editing `$DSH_HOME/cordis.patch.yml`.** Rejected: the env-ref spell is easy to mistype, and the natural shortcut is pasting the token itself — the outcome a settings form exists to prevent.
+
+**Hold the server list in the settings seam instead of the patch file.** Rejected: mcp-client reads its servers from the loader composition, so a list owned by a settings section would not reach the plugin.
+
+**Rewrite the patch file from the section's own model of it.** Rejected: the file also holds foreign rows, comments, and mcp-client keys this form does not model (reconnect timeouts); the manager writes back only the rows it owns and leaves an unreadable managed row untouched rather than guessing at it.
+
+**Write the file in place instead of through tmp + rename.** Rejected: the composition hot-reloads from that file, so a reader that catches a partial write boots a broken tree.
+
+## Consequences
+
+Three privileged RPC methods now rewrite a machine-level config file every profile composes, so an in-app click edits the loader tree and a bad write can break boot until it is repaired; the tmp + rename write and the server-side uniqueness and required-field checks exist to keep that window small. Status is a 5-second poll while the section is mounted, so a server that connects or drops is shown up to 5 seconds late, and the polling stops when the section unmounts.
+
 ## Follow-ups
 
 - Status is a 5-second poll while the section is mounted; a push stream (events domain) would remove the latency if needed.

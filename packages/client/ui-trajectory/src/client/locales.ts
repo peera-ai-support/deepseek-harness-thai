@@ -375,6 +375,7 @@ export const en: Record<TrajectoryKey, string> = {
   'layout.compactionInterrupted': 'Compaction was interrupted before completion.',
 }
 
+/** Thai dictionary; untranslated keys fall back to English. */
 export const th: Partial<Record<TrajectoryKey, string>> = {
   'view.trajectory': 'เส้นทางการทำงาน (Trajectory)',
   'toolbar.aria': 'แถบเครื่องมือเส้นทางการทำงาน',

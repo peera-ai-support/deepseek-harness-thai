@@ -14,7 +14,7 @@ import {
 import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/ModelsSection.tsx'
 import { pathOps } from '../src/client/ProviderEditor.tsx'
 import {
-  DeepSeekModelsEditor, formatCapacity, modelDrafts, parseCapacity, validateDeepSeekModels,
+  DeepSeekModelsEditor, formatCapacity, imagesSupported, modelDrafts, parseCapacity, validateDeepSeekModels,
 } from '../src/client/DeepSeekModelsEditor.tsx'
 import { apiKeyFailure } from '../src/client/apiKey.ts'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
@@ -769,6 +769,39 @@ describe('ModelsSection', () => {
         value: [
           { ...DEFAULT_DEEPSEEK_MODELS[0], contextWindow: 1_000_000 },
           { ...DEFAULT_DEEPSEEK_MODELS[1], contextWindow: 256_000 },
+        ],
+      }],
+      0,
+    ])
+  })
+
+  it('detects image support and toggles inputModalities on DeepSeek models', async () => {
+    expect(imagesSupported({ id: 'v4-flash' })).toBe(false)
+    expect(imagesSupported({ id: 'v4-flash', inputModalities: ['text'] })).toBe(false)
+    expect(imagesSupported({ id: 'v4-vision', inputModalities: ['text', 'image'] })).toBe(true)
+    expect(imagesSupported({ id: 'v4-vision', input: ['text', 'image'] })).toBe(true)
+
+    const { mutate } = await mountDeepSeekCard({
+      mutate: vi.fn(() => Promise.resolve(remoteOk(wireNamespaces()[0]))),
+    })
+    fireEvent.click(screen.getByText(en.customized))
+    expandRow(1)
+    const toggle = screen.getByLabelText(`${en.modelImageSupport} 1`) as HTMLInputElement
+    expect(toggle.checked).toBe(false)
+
+    fireEvent.click(toggle)
+    expect(toggle.checked).toBe(true)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(mutate.mock.calls[0]).toEqual([
+      'llm-deepseek',
+      [{
+        op: 'set',
+        path: ['models'],
+        value: [
+          { ...DEFAULT_DEEPSEEK_MODELS[0], inputModalities: ['text', 'image'] },
+          DEFAULT_DEEPSEEK_MODELS[1],
         ],
       }],
       0,

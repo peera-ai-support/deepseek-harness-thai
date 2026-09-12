@@ -78,8 +78,23 @@ internal static class Program
         using var mutex = new Mutex(true, SingleInstanceMutex, out var created);
         if (!created)
         {
-            ActivateExistingWindow();
-            return;
+            if (ActivateExistingWindow())
+            {
+                return;
+            }
+
+            // Zombie or windowless process was detected and killed; wait briefly to acquire mutex
+            try
+            {
+                if (!mutex.WaitOne(2000))
+                {
+                    return;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // Previous owner was killed; we now own the mutex
+            }
         }
 
         SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
@@ -88,17 +103,32 @@ internal static class Program
         Application.Run(new AppWindow());
     }
 
-    private static void ActivateExistingWindow()
+    private static bool ActivateExistingWindow()
     {
         foreach (var proc in Process.GetProcessesByName("DeepSeekHarness"))
         {
             if (proc.Id == Environment.ProcessId) continue;
-            var handle = proc.MainWindowHandle;
-            if (handle == IntPtr.Zero) continue;
-            ShowWindow(handle, 9);
-            SetForegroundWindow(handle);
-            return;
+            try
+            {
+                var handle = proc.MainWindowHandle;
+                if (handle != IntPtr.Zero)
+                {
+                    ShowWindow(handle, 9);
+                    SetForegroundWindow(handle);
+                    return true;
+                }
+                else
+                {
+                    // Existing instance has no window handle (zombie/headless/stale) - terminate it
+                    proc.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+                // Ignore process already dead or permission
+            }
         }
+        return false;
     }
 
     internal static string FindRepoRoot()
@@ -283,7 +313,12 @@ internal sealed class AppWindow : Form
 
         Controls.Add(_webView);
         Shown += OnShown;
-        FormClosed += (_, _) => Program.StopServerIfStarted();
+        FormClosed += (_, _) =>
+        {
+            Program.StopServerIfStarted();
+            try { _webView.Dispose(); } catch { }
+            Environment.Exit(0);
+        };
     }
 
     private async void OnShown(object? sender, EventArgs e)

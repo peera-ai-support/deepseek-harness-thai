@@ -56,4 +56,9 @@ packages/subprocess/subprocess/src/*.js
 packages/subprocess/subprocess/src/*.js.map
 packages/subprocess/subprocess/src/*.d.ts
 packages/subprocess/subprocess/src/*.d.ts.map
+packages/client/ui-renderer/src/client/*.js
+packages/client/ui-renderer/src/client/*.js.map
+packages/client/ui-renderer/src/client/*.d.ts
+packages/client/ui-renderer/src/client/*.d.ts.map
+!packages/client/ui-renderer/src/client/use-sync-external-store.d.ts
 .zcode/
