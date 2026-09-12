@@ -523,9 +523,11 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0;
+  cursor: pointer;
 }
 
 .modelToggle input[type='checkbox'] {
+  cursor: pointer;
   accent-color: var(--dsw-alias-state-business-primary);
 }
 
