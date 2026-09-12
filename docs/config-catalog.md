@@ -183,6 +183,22 @@ Depends on: [`ToolPresentationMode`](subsystems/tools.md)
 
 Source: [`packages/core/agent-tool-presentation/src/index.ts:38`](../packages/core/agent-tool-presentation/src/index.ts)
 
+<a id="deepseek-aidsh-api-app-update-controller"></a>
+
+## `@deepseek-ai/dsh-api-app-update-controller`
+
+```ts config-catalog
+/** Updater configuration. */
+export interface Config {
+  /** Per-command ceiling for checkout, install, and build, in milliseconds. */
+  readonly applyTimeoutMs?: number
+  /** Per-command ceiling for fetch and release-tag resolution, in milliseconds. */
+  readonly readTimeoutMs?: number
+}
+```
+
+Source: [`packages/api/app-update-controller/src/index.ts:46`](../packages/api/app-update-controller/src/index.ts)
+
 <a id="deepseek-aidsh-api-gateway"></a>
 
 ## `@deepseek-ai/dsh-api-gateway`

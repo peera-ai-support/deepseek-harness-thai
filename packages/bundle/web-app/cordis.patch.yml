@@ -122,6 +122,11 @@
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'
 
+    # In-app updater over Typert Remote: the installed checkout's version, a
+    # read-only release check, and an apply that detaches and rebuilds it.
+    - id: app-update-controller
+      name: '@deepseek-ai/dsh-api-app-update-controller'
+
     # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'

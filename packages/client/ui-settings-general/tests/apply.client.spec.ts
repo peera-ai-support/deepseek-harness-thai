@@ -44,6 +44,16 @@ async function bench(isLoopback = true) {
   }))
   const remote = new TestRemote(ctx, {
     settings: { describe: settingsDescribe, openSettingsDocument: settingsOpenDocument },
+    appUpdate: {
+      info: () => Promise.resolve({
+        ok: true as const, value: { version: '0.1.5-rc.2', appRoot: '/checkout' },
+      }),
+      check: () => Promise.resolve({
+        ok: true as const,
+        value: { currentVersion: '0.1.5-rc.2', latestVersion: '0.1.5-rc.2', updateAvailable: false },
+      }),
+      apply: () => Promise.resolve({ ok: true as const, value: { appliedVersion: '0.1.5-rc.3' } }),
+    },
   })
   // The fixed Host facts the shell reads its loopback-only action from.
   remote.$host = { home: undefined, isLoopback }
@@ -79,7 +89,9 @@ function generalEntry(slots: SlotRegistry) {
 
 describe('ui-settings-general apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'remote.settings', 'settingsScope'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'settingsScope',
+    ])
   })
 
   it('fills all five seats for declarations before or after apply', async () => {
@@ -114,15 +126,18 @@ describe('ui-settings-general apply', () => {
     for (const [name, component] of SEATS) {
       expect(after.slots.entries(name)[0]!.component).toBe(component)
       // The self-inflicted ledger notifications hit the duplicate guard.
-      // settings.section hosts one owner while About and MCP are parked.
-      expect(after.slots.entries(name)).toHaveLength(1)
+      // settings.section hosts the General and About owners; MCP stays parked.
+      expect(after.slots.entries(name)).toHaveLength(name === 'settings.section' ? 2 : 1)
     }
+    const aboutEntry = after.slots.entries('settings.section').find(e => e.options.id === 'about')!
+    expect(aboutEntry.options).toMatchObject({ id: 'about', order: 10 })
+    expect(resolveSlotLabel(aboutEntry.options.label)).toBe('关于')
     await vi.waitFor(() => {
       expect(after.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     })
   })
 
-  it('registers the zh/en settings dictionaries and frees the seats on teardown', async () => {
+  it('registers the zh/en/th settings dictionaries and frees the seats on teardown', async () => {
     const b = await bench()
     declare(b.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
@@ -136,10 +151,15 @@ describe('ui-settings-general apply', () => {
     expect(b.locale.bind('settings')('connection.reconnect')).toBe('Disconnected, reconnect now')
     expect(b.locale.bind('settings')('connection.connecting')).toBe('Reconnecting')
     b.locale.setLocale('zh')
+    b.locale.setLocale('th')
+    expect(b.locale.bind('settings')('about.nav')).toBe('เกี่ยวกับแอป')
+    expect(b.locale.bind('settings')('general.nav')).toBe('ทั่วไป')
+    b.locale.setLocale('zh')
     await fiber.dispose()
     // The (ns, locale) seats are free again — the dictionary disposer ran.
     expect(() => b.locale.register('settings', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings', 'en', {})).not.toThrow()
+    expect(() => b.locale.register('settings', 'th', {})).not.toThrow()
   })
 
   it('the nav label thunk follows the active locale without re-registration', async () => {
@@ -152,7 +172,7 @@ describe('ui-settings-general apply', () => {
     // subscription), not re-registration.
     SEATS.forEach(([name], i) => {
       expect(b.slots.getVersion(name)).toBe(zhVersions[i]!)
-      expect(b.slots.entries(name)).toHaveLength(1)
+      expect(b.slots.entries(name)).toHaveLength(name === 'settings.section' ? 2 : 1)
     })
     expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('General')
     b.locale.setLocale('zh')

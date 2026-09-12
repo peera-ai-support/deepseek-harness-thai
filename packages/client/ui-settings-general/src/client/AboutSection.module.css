@@ -1,0 +1,43 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.label {
+  color: var(--dsw-alias-label-secondary);
+  flex-shrink: 0;
+}
+
+.value {
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+  word-break: break-all;
+  text-align: right;
+}
+
+.actions {
+  margin-top: 8px;
+}
+
+.error {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.update {
+  color: var(--dsw-alias-state-business-primary);
+}

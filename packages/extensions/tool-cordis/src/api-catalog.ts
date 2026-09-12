@@ -461,6 +461,33 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'appUpdate',
+    summary: 'The in-app updater\'s Host Remote namespace.',
+    description: 'The in-app updater\'s Host Remote namespace. `info` and `check` never write to the working tree; `apply` rewrites it, so the client restarts the app after a successful apply.',
+    methods: [
+      {
+        signature: '@Remote info(): AppUpdateInfoValue',
+        description: 'Installed-checkout facts for the About section.',
+        parameters: [],
+        returns: 'the running version and the checkout root, or null when this installation is not a checkout.',
+      },
+      {
+        signature: '@Remote async check(signal: AbortSignal): Promise<AppUpdateCheckValue>',
+        description: 'Check the newest release tag without touching the working tree.',
+        parameters: [{ name: 'signal', description: 'the caller\'s abort signal; cancels the fetch.' }],
+        returns: 'the running version, the newest release version (null when none is reachable), and whether they differ.',
+        throws: ['RemoteError `update/not-a-checkout`, `update/git-unavailable`, or `update/fetch-failed`.'],
+      },
+      {
+        signature: '@Remote async apply(signal: AbortSignal): Promise<AppUpdateApplyValue>',
+        description: 'Apply the newest release in place: fetch, detach the working tree at the release tag, install dependencies, then build.',
+        parameters: [{ name: 'signal', description: 'the caller\'s abort signal; cancels the running stage.' }],
+        returns: 'the release version now present in the checkout.',
+        throws: ['RemoteError `update/not-a-checkout`, `update/git-unavailable`, `update/fetch-failed`, `update/no-release-tag`, `update/checkout-failed`, `update/install-failed`, or `update/build-failed`.'],
+      },
+    ],
+  },
+  {
     key: 'attachments',
     summary: 'Immutable binary attachment service.',
     description: 'Immutable binary attachment service. Implementations validate bytes before publishing a reference.',
@@ -3665,6 +3692,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ApprovalRequestEvent',
     declaration: 'export interface ApprovalRequestEvent {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: ToolCallId;\n    readonly reason?: string;\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
+    name: 'AppUpdateApplyValue',
+    declaration: 'export interface AppUpdateApplyValue {\n    readonly appliedVersion: string;\n}',
+  },
+  {
+    name: 'AppUpdateCheckValue',
+    declaration: 'export interface AppUpdateCheckValue {\n    readonly currentVersion: string;\n    readonly latestVersion: string | null;\n    readonly updateAvailable: boolean;\n}',
+  },
+  {
+    name: 'AppUpdateInfoValue',
+    declaration: 'export interface AppUpdateInfoValue {\n    readonly version: string;\n    readonly appRoot: string | null;\n}',
   },
   {
     name: 'AskUserQuestionAnswer',

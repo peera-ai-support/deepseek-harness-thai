@@ -242,6 +242,44 @@ interface TypertClientRemote extends TypertRemoteNamespaceMap {
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxappupdate--appupdatecontroller"></a>
+
+### `ctx.appUpdate` — `AppUpdateController`
+
+The in-app updater's Host Remote namespace. `info` and `check` never write to the working tree; `apply` rewrites it, so the client restarts the app after a successful apply.
+
+```ts cordis-catalog
+/**
+ * Installed-checkout facts for the About section.
+ * @returns the running version and the checkout root, or null when this
+ * installation is not a checkout.
+ */
+@Remote info(): AppUpdateInfoValue
+
+/**
+ * Check the newest release tag without touching the working tree.
+ * @param signal - the caller's abort signal; cancels the fetch.
+ * @returns the running version, the newest release version (null when none is
+ * reachable), and whether they differ.
+ * @throws RemoteError `update/not-a-checkout`, `update/git-unavailable`, or
+ * `update/fetch-failed`.
+ */
+@Remote async check(signal: AbortSignal): Promise<AppUpdateCheckValue>
+
+/**
+ * Apply the newest release in place: fetch, detach the working tree at the
+ * release tag, install dependencies, then build.
+ * @param signal - the caller's abort signal; cancels the running stage.
+ * @returns the release version now present in the checkout.
+ * @throws RemoteError `update/not-a-checkout`, `update/git-unavailable`,
+ * `update/fetch-failed`, `update/no-release-tag`, `update/checkout-failed`,
+ * `update/install-failed`, or `update/build-failed`.
+ */
+@Remote async apply(signal: AbortSignal): Promise<AppUpdateApplyValue>
+```
+
+Source: [`packages/api/app-update-controller/src/index.ts`](../../packages/api/app-update-controller/src/index.ts)
+
 <a id="ctxtypert--typertregistry"></a>
 
 ### `ctx.typert` — `TypertRegistry`

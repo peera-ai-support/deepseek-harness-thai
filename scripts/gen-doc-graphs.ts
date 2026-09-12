@@ -193,6 +193,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Projects the user-settings seam onto the generated Remote namespace: the read is always redacted and every refusal is classified here, not on the seam Definition.',
   },
   {
+    key: 'appUpdate',
+    pkg: 'api-app-update-controller',
+    title: 'Host in-app-update Remote controller',
+    mode: 'core',
+    note: 'Owns the release check and the in-place apply over the installation checkout; every refusal names the stage that failed.',
+  },
+  {
     key: 'workspaceFiles',
     pkg: 'api-workspace-files',
     title: 'Host workspace file Remote service',
