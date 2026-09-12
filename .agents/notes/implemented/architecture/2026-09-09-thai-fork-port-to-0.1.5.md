@@ -1,4 +1,4 @@
-# Agent Note: Thai fork port onto upstream 0.1.5-alpha.1
+# Agent Note: Thai fork port onto upstream 0.1.5
 
 Status: implemented
 
@@ -8,7 +8,7 @@ English | [中文](2026-09-09-thai-fork-port-to-0.1.5.zh.md)
 
 This fork carried 15 commits of Thai localization, desktop packaging, an MCP
 settings manager, and an in-app updater on top of `dsh-0.1.1-rc.2`. Upstream
-released `dsh-v0.1.5-alpha.1` 2,942 commits later and restructured the host and
+released `dsh-v0.1.5-rc.2` 3,225 commits later and restructured the host and
 client layers: `packages/host/apiproxy` became `packages/api/*-controller`,
 `ui-conversation/src/client/chat` became `packages/client/ui-chat`,
 `packages/client/runtime` disappeared, and the session log moved to v3. A plain
@@ -17,9 +17,9 @@ deleted modules, so the port had to be a resolution pass, not a merge commit.
 
 ## Decision
 
-Port in a separate worktree (`thai-0.1.5` off `dsh-v0.1.5-alpha.1`) so the
-running 0.1.1 checkout and its uncommitted work stay untouched, then merge
-`thai` into it and resolve by rule:
+Port in a separate worktree (`thai-0.1.5` off `dsh-v0.1.5-alpha.1`, later
+merged forward to `dsh-v0.1.5-rc.2`) so the running 0.1.1 checkout and its
+uncommitted work stay untouched, then merge `thai` into it and resolve by rule:
 
 - **Version-only `package.json` conflicts (231)** take upstream. Fork releases
   renumber at release time, not per file.
@@ -64,6 +64,10 @@ dead keys (upstream renamed or removed them) were dropped.
 - `ui-conversation`: `PLAN_NEXT_ACTION_TH` added; `loadThrough` takes
   `SessionSeq` to match the session-controller client.
 - `.gitignore` keeps the fork's desktop and generator build outputs.
+- The `dsh-v0.1.5-rc.2` merge-forward conflicted in 8 files: the three
+  `directory-picker-native` dialog modules, `ui-deliverables`,
+  `ui-message-feedback`, and `ui-sidebar`'s `index.ts`, `mcp-client/src/tools.ts`,
+  and the generated `THIRD_PARTY_NOTICES.md`.
 
 ## Follow-ups
 

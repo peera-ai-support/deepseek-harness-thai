@@ -6,11 +6,13 @@ Status: implemented
 
 ## Problem
 
-在 Windows 上点击「添加工作区」看起来没有反应：点击已被处理，`host.pickDirectory` 在隐藏的 Node 子进程中打开 `IFileOpenDialog`，而 `Show(NULL)` 无法从收到点击的浏览器或 WebView2 抢走前台。选择器停在该窗口后面（或根本不绘制）。选择请求一直挂起，因此 `flowBusy` 会让之后的点击也无效。[移除 PowerShell 回退](../simplification/2026-08-04-drop-windows-powershell-picker-fallback.md) 之后，这是唯一的原生 win32 层级。
+在 Windows 上点击「添加工作区」看起来没有反应：点击已被处理，`host.pickDirectory` 在隐藏的 Node 子进程中打开 `IFileOpenDialog`，而 `Show(NULL)` 无法从收到点击的浏览器或 WebView2 抢走前台。选择器停在该窗口后面（或根本不绘制）。选择请求一直挂起，因此 `flowBusy` 会让之后的点击也无效。[移除 PowerShell 回退](../../archived/simplification/2026-08-04-drop-windows-powershell-picker-fallback.md) 之后，这是唯一的原生 win32 层级。
 
 ## Decision
 
 `loadWin32DialogBindings` 创建一个短生命周期、1×1、位于屏幕外的 `STATIC` 窗口（`WS_EX_TOPMOST | WS_EX_TOOLWINDOW`），把对话框线程附着到当前前台线程，销毁该窗口，再调用 `IFileOpenDialog::Show(NULL)`。这个临时窗口不得活过 `Show`：中止会向对话框线程上的每个窗口投递 `WM_CLOSE`，若在模态 `Show` 期间毁掉 owner，子进程会在报告结果之前退出。若创建窗口得到空句柄，仍调用 `Show(NULL)`，只是不做抢前台。中止仍向对话框线程投递 `WM_CLOSE`。
+
+在 0.1.5 移植分支上已被取代：`dsh-v0.1.5-rc.2` 用[合成 Alt 按键](2026-09-07-win32-picker-foreground-alt-key.zh.md)激活对话框，其“曾考虑的替代方案”一节否决了本注记所选的 `AttachThreadInput` 机制，因此 owner 窗口代码不在移植分支的树里。本注记记录的是 0.1.1 `thai` 分支的行为。
 
 WebView2 桌面封装额外钉死 browse 交互（通过 `dsh web --patch` 加载 `desktop-host/pin-browse-picker.overlay.yml`），使该封装使用应用内目录对话框，而不依赖操作系统前台规则。该 overlay 与 `apps/web/tests/pin-browse-picker.overlay.yml` 一致。若桌面端口上已有未带 overlay 的服务器在听，仍使用 `-auto`（回环 win32 上为 native）；owner 窗口路径覆盖该进程。
 

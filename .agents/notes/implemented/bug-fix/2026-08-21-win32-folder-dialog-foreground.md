@@ -6,11 +6,13 @@ English | [中文](2026-08-21-win32-folder-dialog-foreground.zh.md)
 
 ## Problem
 
-`Add workspace` on Windows looks dead: the click is handled, `host.pickDirectory` opens `IFileOpenDialog` in a hidden Node child, and `Show(NULL)` cannot take foreground from the browser or WebView2 that received the click. The chooser sits behind that window (or never paints). The pick stays pending, so `flowBusy` keeps later clicks inert. The [PowerShell-fallback removal](../simplification/2026-08-04-drop-windows-powershell-picker-fallback.md) left this as the only native win32 tier.
+`Add workspace` on Windows looks dead: the click is handled, `host.pickDirectory` opens `IFileOpenDialog` in a hidden Node child, and `Show(NULL)` cannot take foreground from the browser or WebView2 that received the click. The chooser sits behind that window (or never paints). The pick stays pending, so `flowBusy` keeps later clicks inert. The [PowerShell-fallback removal](../../archived/simplification/2026-08-04-drop-windows-powershell-picker-fallback.md) left this as the only native win32 tier.
 
 ## Decision
 
 `loadWin32DialogBindings` creates a short-lived 1×1 off-screen `STATIC` window (`WS_EX_TOPMOST | WS_EX_TOOLWINDOW`), attaches the dialog thread to the current foreground thread, destroys that window, then calls `IFileOpenDialog::Show(NULL)`. The dummy window must not outlive `Show`: abort posts `WM_CLOSE` to every window on the dialog thread, and destroying an owner under a modal `Show` exits the child before it can report. If window creation returns a null handle, the binding still calls `Show(NULL)` without the steal. Abort still posts `WM_CLOSE` to the dialog thread.
+
+Superseded on the 0.1.5 port branch: `dsh-v0.1.5-rc.2` activates the dialog with a [synthesized Alt press](2026-09-07-win32-picker-foreground-alt-key.md), whose Alternatives section rejects the `AttachThreadInput` mechanism this note chose, so the owner-window code is not in the port's tree. What this note records is the 0.1.1 `thai` branch's behavior.
 
 The WebView2 desktop wrapper additionally pins the browse interaction (`desktop-host/pin-browse-picker.overlay.yml` via `dsh web --patch`) so that wrapper uses the in-app directory dialog, which does not depend on OS foreground rules. The overlay matches `apps/web/tests/pin-browse-picker.overlay.yml`. A server already listening on the desktop port without the overlay still uses `-auto` (native on loopback win32); the owner-window path covers that process.
 
