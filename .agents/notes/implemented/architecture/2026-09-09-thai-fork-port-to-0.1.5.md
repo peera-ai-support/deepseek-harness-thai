@@ -31,6 +31,7 @@ Upstream's `register()` demanded a complete dictionary for every shipped locale.
 - `ui-conversation`: `PLAN_NEXT_ACTION_TH` added; `loadThrough` takes `SessionSeq` to match the session-controller client.
 - `.gitignore` keeps the fork's desktop and generator build outputs.
 - The `dsh-v0.1.5-rc.2` merge-forward conflicted in 8 files: the three `directory-picker-native` dialog modules, `ui-deliverables`, `ui-message-feedback`, and `ui-sidebar`'s `index.ts`, `mcp-client/src/tools.ts`, and the generated `THIRD_PARTY_NOTICES.md`.
+- Every client package now carries a Thai dictionary, including the ones upstream added after the fork: `ui-chat` (its copy is the fork's reviewed `ui-conversation` Thai for the 61 keys the rename kept, plus new copy for the 42 it introduced), `ui-open-in-app`, `ui-schedule`, `ui-sidebar-right`, `ui-sidebar-files`, `ui-sidebar-documentpreview` and its five renderer namespaces, and `ui-approval`. `packages/experimental/**` is left alone; it is outside the shipped releases.
 
 ## Alternatives considered
 
@@ -49,4 +50,3 @@ The port is a branch, not a tracked merge of upstream history, so every future u
 ## Follow-ups
 
 - Port the MCP settings manager and the in-app updater onto a Typert remote (they were `host/apiproxy` domains; the new home is a `*-controller` package beside `settings-controller`).
-- Translate the UI packages upstream added after the fork; they currently render English under the Thai locale.

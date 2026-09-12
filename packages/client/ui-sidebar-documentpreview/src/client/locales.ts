@@ -52,3 +52,25 @@ export const en = {
   'error.unavailable': 'Read failed: {message}',
   retry: 'Retry',
 } satisfies Record<SidebarDocumentPreviewKey, string>
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th = {
+  loading: 'กำลังอ่าน…',
+  loadMore: 'โหลดเพิ่ม',
+  changed: 'ไฟล์ถูกแก้ไข กำลังแสดงเนื้อหาเดิม',
+  reloadNow: 'โหลดใหม่',
+  reload: 'อ่านไฟล์ใหม่',
+  'wrap.enable': 'เปิดการตัดบรรทัดอัตโนมัติ',
+  'wrap.disable': 'ปิดการตัดบรรทัดอัตโนมัติ',
+  'wrap.aria': 'ตัดบรรทัดอัตโนมัติ',
+  openWith: 'เปิดด้วย',
+  'viewer.text': 'ข้อความล้วน',
+  resourceUnavailable: 'บริการไฟล์ไม่พร้อมใช้งาน',
+  rendererUnavailable: 'ตัวแสดงตัวอย่าง {name} ไม่พร้อมใช้งาน',
+  'error.notFound': 'ไม่พบไฟล์ อาจถูกย้ายหรือลบ',
+  'error.tooLarge': 'เนื้อหาหน้านี้เกินขีดจำกัด {limit} จึงอ่านไม่ได้',
+  'error.notText': 'ไม่ใช่ไฟล์ข้อความ จึงยังแสดงตัวอย่างไม่ได้',
+  'error.notRegularFile': 'เส้นทางนี้ไม่ใช่ไฟล์ปกติ จึงไม่มีเนื้อหาให้แสดง',
+  'error.unavailable': 'อ่านไม่สำเร็จ: {message}',
+  retry: 'ลองใหม่',
+} satisfies Partial<Record<SidebarDocumentPreviewKey, string>>

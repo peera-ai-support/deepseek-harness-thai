@@ -49,3 +49,25 @@ export const en: Record<ScheduleCatalogKey, string> = {
 
 /** Key domain of the Schedule catalog namespace. */
 export type ScheduleCatalogKey = keyof typeof zh
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<ScheduleCatalogKey, string>> = {
+  'trigger.one': '{count} การแจ้งเตือน',
+  'trigger.other': '{count} การแจ้งเตือน',
+  'list.aria': 'การแจ้งเตือนที่ใช้งานอยู่',
+  'status.scheduled': 'รอดำเนินการ',
+  'status.overdue': 'เกินกำหนด',
+  'frequency.once': 'ครั้งเดียว',
+  'frequency.every': 'ทุก {value} {unit}',
+  'unit.day.one': 'วัน',
+  'unit.day.other': 'วัน',
+  'unit.hour.one': 'ชั่วโมง',
+  'unit.hour.other': 'ชั่วโมง',
+  'unit.minute.one': 'นาที',
+  'unit.minute.other': 'นาที',
+  'unit.second.one': 'วินาที',
+  'unit.second.other': 'วินาที',
+  'relative.now': 'ถึงกำหนดแล้ว',
+  'relative.future': 'อีก {value} {unit}',
+  'relative.overdue': 'เกินกำหนด {value} {unit}',
+}

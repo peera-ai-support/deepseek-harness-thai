@@ -20,3 +20,12 @@ export const en = {
   reject: 'Reject',
   allowOnce: 'Allow once',
 } satisfies Record<ApprovalKey, string>
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th = {
+  waiting: 'รอการอนุมัติ',
+  'detail.aria': 'รายละเอียดการอนุมัติ',
+  escalation: 'เครื่องมือ {toolName} ขอสิทธิ์ทำงานแบบยกระดับ',
+  reject: 'ปฏิเสธ',
+  allowOnce: 'อนุญาตครั้งนี้ครั้งเดียว',
+} satisfies Partial<Record<ApprovalKey, string>>

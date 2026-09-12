@@ -54,3 +54,20 @@ export const en = {
   'error.notDirectory': 'That is not a directory.',
   'error.unavailable': 'Read failed: {message}',
 } satisfies Record<SidebarFilesKey, string>
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th = {
+  'type.label': 'ไฟล์',
+  'guide.title': 'ไฟล์ในเวิร์กสเปซ',
+  'guide.description': 'เรียกดูไฟล์ในเวิร์กสเปซของบทสนทนานี้',
+  loading: 'กำลังอ่าน…',
+  empty: 'โฟลเดอร์ว่าง',
+  truncated: 'รายการมากเกินไป แสดงเพียงบางส่วน',
+  noWorkspace: 'บทสนทนานี้ไม่มีโฟลเดอร์เวิร์กสเปซ',
+  reload: 'อ่านใหม่',
+  'entry.other': 'ไม่ใช่ไฟล์หรือโฟลเดอร์ จึงเปิดไม่ได้',
+  'error.notFound': 'ไม่พบโฟลเดอร์นี้แล้ว อาจถูกย้ายหรือลบ',
+  'error.outsideWorkspace': 'โฟลเดอร์นี้อยู่นอกเวิร์กสเปซ แถบข้างจะไม่อ่าน',
+  'error.notDirectory': 'สิ่งนี้ไม่ใช่โฟลเดอร์',
+  'error.unavailable': 'อ่านไม่สำเร็จ: {message}',
+} satisfies Partial<Record<SidebarFilesKey, string>>

@@ -33,3 +33,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     sidebarPdf: PdfLocaleKey
   }
 }
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<PdfLocaleKey, string>> = {
+  title: 'PDF',
+  pageImage: 'หน้า {page} ของ PDF',
+  loading: 'กำลังเปิด PDF…',
+  rendering: 'กำลังวาดหน้า…',
+  failed: 'ไม่สามารถแสดง PDF: {message}',
+  password: 'PDF นี้ต้องใช้รหัสผ่าน จึงยังไม่รองรับการแสดงตัวอย่าง',
+  workerFailed: 'กระบวนการเรนเดอร์ PDF ทำงานต่อไม่ได้ กรุณาลองใหม่',
+  unsupported: 'การแสดงตัวอย่าง PDF ต้องใช้เนื้อหาไฟล์ทั้งหมด',
+  retry: 'ลองใหม่',
+}

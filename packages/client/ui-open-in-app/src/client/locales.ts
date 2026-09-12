@@ -67,3 +67,17 @@ export const en: Record<OpenInAppKey, string> = {
 
 /** Key domain of the `open-in-app` namespace (zh is the source of truth). */
 export type OpenInAppKey = keyof typeof zh
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<OpenInAppKey, string>> = {
+  'open.title': 'เปิดโฟลเดอร์งานใน {app}',
+  'open.tooltip': 'เปิดในเครื่องนี้',
+  'open.error': 'เปิดไม่สำเร็จ',
+  'menu.toggle': 'เลือกแอปที่จะเปิดด้วย',
+  'menu.aria': 'เปิดด้วย',
+  ...PRODUCT_NAMES,
+  'app.finder': 'Finder',
+  'app.explorer': 'File Explorer',
+  'app.filemanager': 'ตัวจัดการไฟล์',
+  'app.terminal': 'เทอร์มินัล',
+}

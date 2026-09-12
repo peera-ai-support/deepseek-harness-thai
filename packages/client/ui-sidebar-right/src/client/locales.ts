@@ -58,3 +58,28 @@ export const en = {
   'tab.guide.title': 'Start',
   'tab.unavailable': 'Nothing here can view this kind of content yet.',
 } satisfies Record<SidebarRightKey, string>
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<SidebarRightKey, string>> = {
+  'chrome.expand': 'เปิดแถบข้าง',
+  'chrome.expandAria': 'เปิดแถบข้างขวา',
+  'chrome.collapse': 'ย่อแถบข้าง',
+  'chrome.collapseAria': 'ย่อแถบข้างขวา',
+  'chrome.toFullscreen': 'เต็มหน้าจอ',
+  'chrome.exitFullscreen': 'ออกจากเต็มหน้าจอ',
+  'dock.emptyPane': 'บานหน้าต่างว่าง',
+  'dock.splitPane': 'แบ่งบานหน้าต่าง',
+  'dock.splitPaneDisabled': 'ถึงขีดจำกัดสองช่องแล้ว',
+  'dock.splitPaneNarrow': 'ความกว้างไม่พอ ลากแถบข้างให้กว้างขึ้นแล้วค่อยแบ่ง',
+  'dock.closeTab': 'ปิด',
+  'dock.addTab': 'แท็บใหม่',
+  'dock.dockFloat': 'ยึดกลับเข้าแถบข้าง',
+  'dock.closeFloat': 'ปิด',
+  'dock.drop.center': 'ย้ายมาที่นี่',
+  'dock.drop.left': 'แบ่งซ้าย',
+  'dock.drop.right': 'แบ่งขวา',
+  'dock.drop.top': 'แบ่งบน',
+  'dock.drop.bottom': 'แบ่งล่าง',
+  'tab.guide.title': 'เริ่มต้น',
+  'tab.unavailable': 'เนื้อหาประเภทนี้ยังไม่มีวิธีดูที่ใช้ได้',
+}

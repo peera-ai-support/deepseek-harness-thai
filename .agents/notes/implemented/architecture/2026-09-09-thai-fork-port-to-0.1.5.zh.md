@@ -31,6 +31,7 @@ Status: implemented
 - `ui-conversation`：新增 `PLAN_NEXT_ACTION_TH`；`loadThrough` 改为接收 `SessionSeq`，与 session-controller 客户端一致。
 - `.gitignore` 保留分支的桌面与生成器构建产物。
 - `dsh-v0.1.5-rc.2` 的向前合并有 8 个文件冲突：`directory-picker-native` 的三个对话框模块、`ui-deliverables`、`ui-message-feedback`、`ui-sidebar` 的 `index.ts`、`mcp-client/src/tools.ts`，以及生成的 `THIRD_PARTY_NOTICES.md`。
+- 现在每个客户端包都带有泰语字典，包括上游在分支之后新增的那些：`ui-chat`（其文案中，改名保留的 61 个 key 沿用分支已评审的 `ui-conversation` 泰语，新引入的 42 个 key 为新译）、`ui-open-in-app`、`ui-schedule`、`ui-sidebar-right`、`ui-sidebar-files`、`ui-sidebar-documentpreview` 及其五个渲染器命名空间，以及 `ui-approval`。`packages/experimental/**` 未作处理，它不在正式发布的范围内。
 
 ## 曾考虑的替代方案
 
@@ -49,4 +50,3 @@ Status: implemented
 ## 后续事项
 
 - 把 MCP 设置管理器与应用内更新器移植到 Typert Remote（它们原是 `host/apiproxy` 的领域，新家是 `settings-controller` 旁的 `*-controller` 包）。
-- 翻译分支之后上游新增的 UI 包；在泰语语言下它们目前显示英文。

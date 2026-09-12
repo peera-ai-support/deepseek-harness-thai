@@ -23,3 +23,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     documentMarkdown: MarkdownPreviewKey
   }
 }
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<MarkdownPreviewKey, string>> = {
+  'viewer.label': 'Markdown',
+  'code.copy': 'คัดลอก',
+  'code.copied': 'คัดลอกแล้ว',
+  footnotes: 'เชิงอรรถ',
+}

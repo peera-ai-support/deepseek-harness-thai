@@ -25,3 +25,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     sidebarImage: ImagePreviewKey
   }
 }
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<ImagePreviewKey, string>> = {
+  title: 'รูปภาพ',
+  preview: 'ตัวอย่างรูปภาพ: {name}',
+  loading: 'กำลังเปิดรูปภาพ…',
+  failed: 'ไม่สามารถแสดงรูปภาพนี้ได้',
+  unsupported: 'การแสดงตัวอย่างรูปภาพต้องใช้เนื้อหาไฟล์ทั้งหมด',
+}

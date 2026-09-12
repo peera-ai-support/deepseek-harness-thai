@@ -4,7 +4,7 @@ import type {} from '../index.ts'
 import type { DocumentPreviewDefinition } from '../document/registry.ts'
 import { PdfBody, type PdfBodyInjected } from './PdfBody.tsx'
 import { createPdfStore } from './store.ts'
-import { en, zh } from './locales.ts'
+import { en, th, zh } from './locales.ts'
 
 /** PDF metadata and keyed body share this package-local implementation identity. */
 export const PDF_BODY_ID = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/pdf'
@@ -20,7 +20,7 @@ export function pdfBodyDefinition(title: () => string): DocumentPreviewDefinitio
 
 /** @param ctx - context carrying the locale, document registry, and slot registry. */
 export function apply(ctx: Context): void {
-  ctx.effect(() => ctx.locale.register('sidebarPdf', { zh, en }))
+  ctx.effect(() => ctx.locale.register('sidebarPdf', { zh, en, th }))
   const t = ctx.locale.bind('sidebarPdf')
   ctx.effect(() => ctx.documentPreviews.register(pdfBodyDefinition(() => t('title'))))
   const store = createPdfStore()

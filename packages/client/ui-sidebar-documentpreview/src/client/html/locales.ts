@@ -23,3 +23,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     documentHtml: HtmlPreviewKey
   }
 }
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<HtmlPreviewKey, string>> = {
+  title: 'HTML',
+  frame: 'ตัวอย่างเอกสาร HTML',
+  loading: 'กำลังเตรียมตัวอย่าง HTML…',
+  failed: 'ไม่สามารถแสดงตัวอย่างเอกสาร HTML นี้ได้',
+}

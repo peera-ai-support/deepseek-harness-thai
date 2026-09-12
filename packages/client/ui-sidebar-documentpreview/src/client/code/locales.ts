@@ -21,3 +21,10 @@ export const en = {
   copy: 'Copy',
   copied: 'Copied',
 } satisfies Record<keyof typeof zh, string>
+
+/** Thai dictionary; untranslated keys fall back to English. */
+export const th: Partial<Record<keyof typeof zh, string>> = {
+  title: 'โค้ด',
+  copy: 'คัดลอก',
+  copied: 'คัดลอกแล้ว',
+}
