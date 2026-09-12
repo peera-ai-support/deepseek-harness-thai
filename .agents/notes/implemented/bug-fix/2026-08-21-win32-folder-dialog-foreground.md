@@ -12,7 +12,7 @@ English | [中文](2026-08-21-win32-folder-dialog-foreground.zh.md)
 
 `loadWin32DialogBindings` creates a short-lived 1×1 off-screen `STATIC` window (`WS_EX_TOPMOST | WS_EX_TOOLWINDOW`), attaches the dialog thread to the current foreground thread, destroys that window, then calls `IFileOpenDialog::Show(NULL)`. The dummy window must not outlive `Show`: abort posts `WM_CLOSE` to every window on the dialog thread, and destroying an owner under a modal `Show` exits the child before it can report. If window creation returns a null handle, the binding still calls `Show(NULL)` without the steal. Abort still posts `WM_CLOSE` to the dialog thread.
 
-The WebView2 desktop wrapper additionally pins the browse interaction (`desktop-host/pin-browse-picker.overlay.yml` via `dsh web --patch`) so that wrapper uses the in-app directory dialog, which does not depend on OS foreground rules. The overlay matches `apps/web/tests/pin-browse-picker.overlay.yml`. A server already listening on the desktop port without the overlay still uses `-auto` (native on loopback win32); the owner-window path covers that process.
+The WebView2 desktop wrapper can additionally pin the browse interaction (`desktop-host/pin-browse-picker.overlay.yml` via `dsh web --patch`) so the wrapper uses the in-app directory dialog, which does not depend on OS foreground rules; the overlay rows match `apps/web/tests/pin-browse-picker.overlay.yml`. No shipped launcher passes it: `launch-desktop.ps1` runs `dsh web --port <port> --no-open`, so the wrapper keeps `-auto` (native on loopback win32) and relies on the owner-window path above. The overlay is parked as `desktop-host/pin-browse-picker.overlay.yml.disabled` for a launcher that needs it.
 
 ## Alternatives considered
 

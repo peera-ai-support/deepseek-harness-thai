@@ -12,7 +12,7 @@ Status: implemented
 
 `loadWin32DialogBindings` 创建一个短生命周期、1×1、位于屏幕外的 `STATIC` 窗口（`WS_EX_TOPMOST | WS_EX_TOOLWINDOW`），把对话框线程附着到当前前台线程，销毁该窗口，再调用 `IFileOpenDialog::Show(NULL)`。这个临时窗口不得活过 `Show`：中止会向对话框线程上的每个窗口投递 `WM_CLOSE`，若在模态 `Show` 期间毁掉 owner，子进程会在报告结果之前退出。若创建窗口得到空句柄，仍调用 `Show(NULL)`，只是不做抢前台。中止仍向对话框线程投递 `WM_CLOSE`。
 
-WebView2 桌面封装额外钉死 browse 交互（通过 `dsh web --patch` 加载 `desktop-host/pin-browse-picker.overlay.yml`），使该封装使用应用内目录对话框，而不依赖操作系统前台规则。该 overlay 与 `apps/web/tests/pin-browse-picker.overlay.yml` 一致。若桌面端口上已有未带 overlay 的服务器在听，仍使用 `-auto`（回环 win32 上为 native）；owner 窗口路径覆盖该进程。
+WebView2 桌面封装也可以额外钉死 browse 交互（通过 `dsh web --patch` 加载 `desktop-host/pin-browse-picker.overlay.yml`），使该封装使用应用内目录对话框，而不依赖操作系统前台规则；其 overlay 配置行与 `apps/web/tests/pin-browse-picker.overlay.yml` 一致。当前没有随附的启动器会传入它：`launch-desktop.ps1` 运行的是 `dsh web --port <port> --no-open`，因此封装仍使用 `-auto`（回环 win32 上为 native），并依赖上面的 owner 窗口路径。该 overlay 停放在 `desktop-host/pin-browse-picker.overlay.yml.disabled`，供需要它的启动器使用。
 
 ## Alternatives considered
 
