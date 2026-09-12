@@ -12,7 +12,12 @@ This fork carried 15 commits of Thai localization, desktop packaging, an MCP set
 
 Port in a separate worktree (`thai-0.1.5` off `dsh-v0.1.5-alpha.1`, later merged forward to `dsh-v0.1.5-rc.2`) so the running 0.1.1 checkout and its uncommitted work stay untouched, then merge `thai` into it and resolve by rule:
 
-- **Version-only `package.json` conflicts (231)** take upstream. Fork releases renumber at release time, not per file. - **Superseded feature files take upstream.** 0.1.5 already carries the turn rail (`ui-chat` `TurnNavigator` + `turn-rail-items`), the image card in `ui-tool`, the trajectory locale seat, and the win32 dialog foreground fix; the fork's parallel implementations are dropped rather than merged. - **Packages upstream deleted** (`host/apiproxy`, `client/runtime`, `examples`, `tool-subagent-report`, `acp-snapshot`) are accepted as deleted. The fork features that lived in them (MCP settings manager, in-app update RPC) are parked for a follow-up port onto the Typert remote architecture; their client UI and tests are parked with them. The mcp-client status store that fed that manager (`src/status.ts` plus the `startConnection` and `syncTools` sink parameters) is dropped for the same reason, which leaves `packages/mcp/mcp-client` identical to upstream. - **Thai locale is kept and re-applied.** `LOCALE_IDS` already carried `th`; what was missing was coverage after upstream's key-set changes. - **Fork-only fixes re-apply on upstream's new code**: the pi-ai thinking-only promotion and embedded tool-call recovery land on upstream's `toStreamChunks`, which already had the pending-reasoning buffer. - **Desktop packaging stays.** The fork's WinForms `desktop-host/` launches `apps/cli/lib/bin.js web`, which 0.1.5 still provides; upstream's own `apps/desktop` (Electron) is a separate product and is left untouched.
+- **Version-only `package.json` conflicts (231)** take upstream. Fork releases renumber at release time, not per file.
+- **Superseded feature files take upstream.** 0.1.5 already carries the turn rail (`ui-chat` `TurnNavigator` + `turn-rail-items`), the image card in `ui-tool`, the trajectory locale seat, and the win32 dialog foreground fix; the fork's parallel implementations are dropped rather than merged, including the chat dock components (`PromptNavigator`, `ThinkingDock`, `TurnCompletedSteps`, `scratchpad`) that upstream's `ui-chat` surface replaces.
+- **Packages upstream deleted** (`host/apiproxy`, `client/runtime`, `examples`, `tool-subagent-report`, `acp-snapshot`) are accepted as deleted. The fork features that lived in them (MCP settings manager, in-app update RPC) are parked for a follow-up port onto the Typert remote architecture; their client UI and tests are parked with them. The mcp-client status store that fed that manager (`src/status.ts` plus the `startConnection` and `syncTools` sink parameters) is dropped for the same reason, which leaves `packages/mcp/mcp-client` identical to upstream.
+- **Thai locale is kept and re-applied.** `LOCALE_IDS` already carried `th`; what was missing was coverage after upstream's key-set changes.
+- **Fork-only fixes re-apply on upstream's new code**: the pi-ai thinking-only promotion and embedded tool-call recovery land on upstream's `toStreamChunks`, which already had the pending-reasoning buffer.
+- **Desktop packaging stays.** The fork's WinForms `desktop-host/` launches `apps/cli/lib/bin.js web`, which 0.1.5 still provides; upstream's own `apps/desktop` (Electron) is a separate product and is left untouched.
 
 ## Locale typing
 
@@ -20,7 +25,12 @@ Upstream's `register()` demanded a complete dictionary for every shipped locale.
 
 ## Blast radius
 
-- 25 Thai dictionaries plus `packages/client/locale` (registration contract, `REQUIRED_LOCALE_IDS`, `th` locale definition). - `packages/bundle/{headless,web-app}/cordis.patch.yml`: upstream's `personaPrefix`/`personaSuffix` split carries the fork's MCP memory hint in the suffix. - `ui-settings-models`: `WELCOME_NOTICE_COPY` restored to `onboarding-copy.ts` with its import, and the Thai dictionary relaxed to partial. - `ui-conversation`: `PLAN_NEXT_ACTION_TH` added; `loadThrough` takes `SessionSeq` to match the session-controller client. - `.gitignore` keeps the fork's desktop and generator build outputs. - The `dsh-v0.1.5-rc.2` merge-forward conflicted in 8 files: the three `directory-picker-native` dialog modules, `ui-deliverables`, `ui-message-feedback`, and `ui-sidebar`'s `index.ts`, `mcp-client/src/tools.ts`, and the generated `THIRD_PARTY_NOTICES.md`.
+- 25 Thai dictionaries plus `packages/client/locale` (registration contract, `REQUIRED_LOCALE_IDS`, `th` locale definition).
+- `packages/bundle/{headless,web-app}/cordis.patch.yml`: upstream's `personaPrefix`/`personaSuffix` split carries the fork's MCP memory hint in the suffix.
+- `ui-settings-models`: `WELCOME_NOTICE_COPY` restored to `onboarding-copy.ts` with its import, and the Thai dictionary relaxed to partial.
+- `ui-conversation`: `PLAN_NEXT_ACTION_TH` added; `loadThrough` takes `SessionSeq` to match the session-controller client.
+- `.gitignore` keeps the fork's desktop and generator build outputs.
+- The `dsh-v0.1.5-rc.2` merge-forward conflicted in 8 files: the three `directory-picker-native` dialog modules, `ui-deliverables`, `ui-message-feedback`, and `ui-sidebar`'s `index.ts`, `mcp-client/src/tools.ts`, and the generated `THIRD_PARTY_NOTICES.md`.
 
 ## Alternatives considered
 
@@ -38,4 +48,5 @@ The port is a branch, not a tracked merge of upstream history, so every future u
 
 ## Follow-ups
 
-- Port the MCP settings manager and the in-app updater onto a Typert remote (they were `host/apiproxy` domains; the new home is a `*-controller` package beside `settings-controller`). - Wire the parked chat dock components (`PromptNavigator`, `ThinkingDock`, `TurnCompletedSteps`, `scratchpad`) into `ui-chat`, or retire them in favour of upstream's chat surface. - Translate the UI packages upstream added after the fork; they currently render English under the Thai locale.
+- Port the MCP settings manager and the in-app updater onto a Typert remote (they were `host/apiproxy` domains; the new home is a `*-controller` package beside `settings-controller`).
+- Translate the UI packages upstream added after the fork; they currently render English under the Thai locale.
