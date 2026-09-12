@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-24-memory-hint-system-prompt.md
-2026-08-24-memory-hint-system-prompt.md: 3adf646250e8cba770260f4dcd286b9e4582cf86
-2026-08-24-memory-hint-system-prompt.zh.md: 7f5e179dc3ed735c864cc91a39654caceb891495
+2026-08-24-memory-hint-system-prompt.md: 1152a93ac171606d97ea5a24595ad8f8c5bff8d8
+2026-08-24-memory-hint-system-prompt.zh.md: 41a222417f951c523dd95be77892afdf7d41d001
