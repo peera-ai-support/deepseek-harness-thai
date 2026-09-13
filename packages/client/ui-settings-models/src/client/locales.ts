@@ -1,5 +1,4 @@
 /** Copy dictionaries for the Models settings section. */
-import { WELCOME_NOTICE_COPY } from '../onboarding-copy.ts'
 
 /** English strings (the key-set source of truth for this pair). */
 export const en = {
@@ -302,9 +301,9 @@ export const th: Partial<{ [Key in keyof typeof en]: string }> = {
   customNeedsModels: 'ผู้ให้บริการแบบกำหนดเองจำเป็นต้องมีอย่างน้อยหนึ่งโมเดล',
   create: 'สร้างผู้ให้บริการ',
   creating: 'กำลังสร้าง\u2026',
-  welcomeTitle: WELCOME_NOTICE_COPY.th.title,
-  welcomeBody: WELCOME_NOTICE_COPY.th.body,
-  welcomeContinue: WELCOME_NOTICE_COPY.th.continueLabel,
+  welcomeTitle: 'ประกาศช่วงทดสอบภายใน',
+  welcomeBody: 'DeepSeek Harness เวอร์ชัน 0.1 ยังอยู่ในช่วงทดสอบสำหรับนักพัฒนา Harness ยังมีหลายส่วนที่ต้องพัฒนาและปรับปรุงอย่างต่อเนื่อง เรายินดีรับฟังข้อเสนอแนะจากนักพัฒนาทุกท่าน โดยปลั๊กอินหลักและ API พื้นฐานของ DeepSeek Harness จะมีการพัฒนาและอัปเดตอย่างรวดเร็วในระยะต่อไป\n\nเรามุ่งหวังที่จะร่วมมือกับนักพัฒนาทั่วโลก บนโครงสร้างพื้นฐานที่เป็นโอเพนซอร์ส เปิดกว้าง นำกลับมาใช้ซ้ำได้ และประกอบเข้ากันได้ เพื่อร่วมสำรวจขีดความสามารถสูงสุดของ AI ขอต้อนรับนักพัฒนา Harness ทั่วโลกเข้าร่วมระบบนิเวศปลั๊กอิน DSH',
+  welcomeContinue: 'ดำเนินการต่อ',
   welcomeError: 'ไม่สามารถบันทึกการรับทราบได้ กรุณาลองใหม่อีกครั้ง',
   onboardingTitle: 'เพิ่ม API Key เพื่อเริ่มต้นใช้งาน',
   onboardingDescription: 'กำหนดค่าผู้ให้บริการ DeepSeek อย่างเป็นทางการเพื่อเริ่มสร้างงาน',

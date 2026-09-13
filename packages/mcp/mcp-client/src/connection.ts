@@ -90,6 +90,11 @@ export function resolveReconnectPolicy(config: ReconnectConfig | undefined, path
   return Object.freeze({ enabled, initialDelayMs, maxDelayMs, maxAttempts })
 }
 
+/** Render an unknown thrown value for a status message. */
+function describeUnknown(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 /** Result from the initial connection attempt, for startup-await semantics. */
 export interface ConnectionOutcome {
   /** If the initial connection or tool sync failed, the error; otherwise absent. */
@@ -233,9 +238,7 @@ export function startConnection(
     const delayMs = Math.min(policy.maxDelayMs, policy.initialDelayMs * 2 ** (failedAttempts - 1))
     const action = lostEstablishedConnection ? 'connection lost; reconnecting' : 'connection failed; retrying'
     ctx.logger.warn(`${label}: ${action} in ${delayMs}ms (attempt ${failedAttempts}/${policy.maxAttempts})`)
-    const errMessage = firstAttemptError instanceof Error
-      ? firstAttemptError.message
-      : (firstAttemptError ? String(firstAttemptError) : undefined)
+    const errMessage = firstAttemptError ? describeUnknown(firstAttemptError) : undefined
     status?.update({
       phase: 'reconnecting',
       attempt: failedAttempts,

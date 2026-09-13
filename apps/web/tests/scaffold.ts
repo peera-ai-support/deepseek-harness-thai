@@ -91,12 +91,14 @@ import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { REPO_ROOT, requireDist } from './support.ts'
 
 // Host-side web e2e cannot import a browser package: doing so would pull that
-// package's complete TS project into this graph. Mirrored from
-// packages/client/ui-settings-models/src/onboarding-copy.ts; drift makes the
-// default pre-acknowledgement stop suppressing the notice and fails loudly.
+// package's complete TS project into this graph. Mirrored from the notice
+// constants in packages/client/ui-settings-models/src/onboarding-copy.ts and the
+// zh dictionary in packages/client/ui-settings-models/src/client/locales.ts;
+// drift makes the default pre-acknowledgement stop suppressing the notice and
+// fails loudly.
 // import {
 //   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE,
-//   WELCOME_NOTICE_VERSION, WELCOME_NOTICE_COPY,
+//   WELCOME_NOTICE_VERSION,
 // } from '@deepseek-ai/dsh-client-ui-settings-models'
 export const WELCOME_NOTICE_SETTINGS_NAMESPACE = 'ui-onboarding'
 export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { McpOperations } from './mcp-operations.ts'
+import { secretEnvName } from './mcp-secrets.ts'
 import type { McpHeaderOrEnv, McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
 import { GitHubIcon } from './GitHubIcon.tsx'
 import {
@@ -99,11 +100,6 @@ const ENV_MARKER = '$env:'
 /** Values at least this long are treated as pasted secrets and exported on save. */
 const SECRET_MIN_LENGTH = 16
 
-function secretEnvName(serverName: string, key: string): string {
-  const clean = (text: string) => (text.toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'X')
-  return `DSH_MCP_${clean(serverName)}_${clean(key)}`
-}
-
 /** Item fetched from the Smithery online registry. */
 interface OnlineServerItem {
   id: string
@@ -117,7 +113,7 @@ interface OnlineServerItem {
 }
 
 function formatUses(count?: number): string {
-  if (count === undefined || count === null) return '0'
+  if (count === undefined) return '0'
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`
   return String(count)
@@ -766,7 +762,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
 
   const copyText = (id: string, text: string) => {
     if (!text) return
-    void navigator.clipboard?.writeText(text)
+    void navigator.clipboard.writeText(text)
     setCopiedId(id)
     setTimeout(() => {
       setCopiedId(prev => (prev === id ? null : prev))
@@ -1729,7 +1725,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                   <button
                     type="button"
                     className={`${css.toolsBadgeBtn} ${isExpanded ? (css.toolsBadgeActive ?? '') : ''}`}
-                    onClick={() => toggleTools(server.id)}
+                    onClick={() => { toggleTools(server.id) }}
                     title={t('mcp.showTools')}
                   >
                     <span>⚡</span>
@@ -1794,7 +1790,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                                 type="button"
                                 className={css.toolCopyBtn}
                                 title={t('mcp.copyToolName')}
-                                onClick={() => copyText(tool.name, tool.name)}
+                                onClick={() => { copyText(tool.name, tool.name) }}
                               >
                                 <code className={css.toolPublicName}>{tool.name}</code>
                                 <span className={css.toolCopyFeedback}>
@@ -1902,7 +1898,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                     <input
                       className={css.input}
                       value={draft.id}
-                      placeholder={`mcp-${draft.serverName}`}
+                      placeholder={t('mcp.idPlaceholder', { name: draft.serverName })}
                       aria-label={t('mcp.idLabel')}
                       onChange={(event) => { setDraft({ ...draft, id: event.target.value }) }}
                     />
@@ -1942,7 +1938,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                       <input
                         className={css.input}
                         value={draft.url}
-                        placeholder="https://mcp.example.com/mcp"
+                        placeholder={t('mcp.urlPlaceholder')}
                         aria-label={t('mcp.url')}
                         onChange={(event) => { setDraft({ ...draft, url: event.target.value }) }}
                       />
@@ -1976,7 +1972,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                     className={css.jsonArea}
                     value={draft.headersJson}
                     spellCheck={false}
-                    placeholder={'{\n  "Authorization": "Bearer your-token"\n}'}
+                    placeholder={t('mcp.headersPlaceholder')}
                     aria-label={t('mcp.headers')}
                     onChange={(event) => { setDraft({ ...draft, headersJson: event.target.value }) }}
                   />
