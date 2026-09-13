@@ -73,6 +73,10 @@ export interface McpServersFileValue extends McpServersValue {
   filePath: string
 }
 
+/* jscpd:ignore-start -- The live-status vocabulary is restated here rather than
+   imported: mcp-client is a host-only plugin package, and the browser compile
+   program (tsconfig.client.json) must not list its sources (TS6307), so the
+   browser-safe declaration cannot alias the client's. Keep both sides in step. */
 /** One live connection phase of an mcp-client instance. */
 export type McpServerPhase = 'connecting' | 'connected' | 'reconnecting' | 'disabled'
 
@@ -101,6 +105,7 @@ export interface McpServerStatus {
   /** Error message if down or reconnecting. */
   error?: string | undefined
 }
+/* jscpd:ignore-end */
 
 /** Live statuses of the mounted mcp-client instances. */
 export interface McpStatusValue {

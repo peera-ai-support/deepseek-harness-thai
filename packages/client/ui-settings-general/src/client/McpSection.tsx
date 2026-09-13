@@ -169,6 +169,22 @@ interface QuickPreset {
     | 'mcp.quick.tokenLabel.mcp-postgres'
 }
 
+/** The install state one preset row renders from, shared by the card and table catalog layouts. */
+interface PresetRowState {
+  /** A configured row already carries this preset's id. */
+  installed: boolean
+  /** Brand-mark class of the preset's catalog icon ('' when it has no dedicated mark). */
+  iconClass: string
+  /** Credential field text: the row's own edit, else the shared quick-token field. */
+  cardToken: string
+  /** Extra-text field text (e.g. a folder path): the row's own edit, else the shared quick-path field. */
+  cardPath: string
+  /** The install button is disabled for the row's current state. */
+  actionDisabled: boolean
+  /** The install button's label for the row's current state. */
+  actionText: string
+}
+
 /** Predefined quick-install presets. Add a row here (plus its locale keys) to offer another server. */
 const QUICK_PRESETS: readonly QuickPreset[] = [
   {
@@ -1029,6 +1045,22 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
     setStatus({ kind: 'idle' })
   }
 
+  /** Publish the saved note, flag the row as just saved, and refresh live status. */
+  const markRowSaved = (id: string) => {
+    setStatus({ kind: 'saved' })
+    setRecentlySavedId(id)
+    setTimeout(() => {
+      setRecentlySavedId(prev => (prev === id ? null : prev))
+    }, 2500)
+    void loadStatus()
+  }
+
+  /** Clear the install-in-flight markers once an upsert settles. */
+  const clearInstallBusy = () => {
+    setQuickBusy(false)
+    setBusyPresetId(null)
+  }
+
   const quickInstallFromOnline = async (server: OnlineServerItem) => {
     const id = `mcp-${server.qualifiedName.replace(/[^a-zA-Z0-9_-]/g, '-')}`
     const serverName = server.qualifiedName.split('/').pop()?.replace(/[^a-zA-Z0-9_-]/g, '_') || 'mcp_server'
@@ -1051,17 +1083,11 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
         return
       }
       setServers(response.value.servers)
-      setStatus({ kind: 'saved' })
-      setRecentlySavedId(server.id)
-      setTimeout(() => {
-        setRecentlySavedId(prev => (prev === server.id ? null : prev))
-      }, 2500)
-      void loadStatus()
+      markRowSaved(server.id)
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     } finally {
-      setQuickBusy(false)
-      setBusyPresetId(null)
+      clearInstallBusy()
     }
   }
 
@@ -1097,18 +1123,145 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
       setSecretNote(preset.tokenKey !== undefined
         ? t('mcp.quickInstalled', { server: preset.serverName, env: preset.envName })
         : '')
-      setStatus({ kind: 'saved' })
-      setRecentlySavedId(preset.id)
-      setTimeout(() => {
-        setRecentlySavedId(prev => (prev === preset.id ? null : prev))
-      }, 2500)
-      void loadStatus()
+      markRowSaved(preset.id)
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     } finally {
-      setQuickBusy(false)
-      setBusyPresetId(null)
+      clearInstallBusy()
     }
+  }
+
+  /**
+   * The install state one preset row renders from, shared by the card grid and
+   * the table layout.
+   * @param preset - the preset the row renders.
+   * @returns the install flag, brand-icon class, field texts, and the action button's disabled flag and label.
+   */
+  const presetRowState = (preset: QuickPreset) => {
+    const installed = servers.some(s => s.id === preset.id)
+    const cardToken = presetTokens[preset.id] ?? quickToken
+    const cardPath = presetPaths[preset.id] ?? quickPath
+    const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
+    const isJustSaved = recentlySavedId === preset.id
+
+    let actionText = t('mcp.quick.action')
+    if (busyPresetId === preset.id) {
+      actionText = '⏳ ' + t('mcp.saving')
+    } else if (isJustSaved) {
+      actionText = '✓ ' + t('mcp.saved')
+    } else if (installed) {
+      actionText = hasInputs
+        ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
+        : `✓ ${t('mcp.quick.installedTag')}`
+    }
+
+    return {
+      installed,
+      iconClass: css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? '',
+      cardToken,
+      cardPath,
+      actionDisabled: quickBusy
+        || (installed && !hasInputs && !isJustSaved)
+        || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
+        || (!installed && preset.requiresExtraText === true && cardPath.trim() === ''),
+      actionText,
+    }
+  }
+
+  /**
+   * The preset row's optional credential and extra-text fields.
+   * @param preset - the preset the row renders.
+   * @param row - the row state holding both field texts.
+   * @param fieldClass - the input class the layout gives its fields.
+   * @param wrap - wraps the fields in the card layout's field row; the table layout places them as direct row cells.
+   * @returns the fields, or null when the preset defines neither.
+   */
+  const presetFields = (preset: QuickPreset, row: PresetRowState, fieldClass: string | undefined, wrap: boolean) => {
+    if (preset.tokenKey === undefined && preset.extraTextLabelKey === undefined) return null
+
+    const fields = (
+      <>
+        {preset.tokenKey !== undefined ? (
+          <input
+            className={fieldClass}
+            type="password"
+            value={row.cardToken}
+            placeholder={t(preset.tokenKey)}
+            aria-label={t(preset.tokenKey)}
+            onChange={(event) => {
+              const val = event.target.value
+              setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
+              setQuickToken(val)
+            }}
+          />
+        ) : null}
+        {preset.extraTextLabelKey !== undefined ? (
+          <input
+            className={fieldClass}
+            value={row.cardPath}
+            placeholder={t(preset.extraTextLabelKey)}
+            aria-label={t(preset.extraTextLabelKey)}
+            onChange={(event) => {
+              const val = event.target.value
+              setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
+              setQuickPath(val)
+            }}
+          />
+        ) : null}
+      </>
+    )
+    return wrap ? <div className={css.quickFields}>{fields}</div> : fields
+  }
+
+  /**
+   * One online-registry row's icon cell: the server's own mark, else a globe.
+   * @param server - the registry entry the row renders.
+   * @param className - the icon-cell class the layout uses.
+   * @param globeSize - globe size in px for the layout's row height.
+   * @returns the icon cell.
+   */
+  const registryIcon = (server: OnlineServerItem, className: string | undefined, globeSize: number) => (
+    <div className={className}>
+      {server.iconUrl ? (
+        <img
+          src={server.iconUrl}
+          alt={server.displayName || server.qualifiedName}
+          className={css.onlineIconImg}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      ) : (
+        <GlobeIcon size={globeSize} />
+      )}
+    </div>
+  )
+
+  /**
+   * One online-registry row's install/update button.
+   * @param server - the registry entry the row renders.
+   * @param isInstalled - a configured row already covers this entry.
+   * @returns the button, labelled and disabled for the entry's busy/installed state.
+   */
+  const registryInstallButton = (server: OnlineServerItem, isInstalled: boolean) => {
+    const isBusy = busyPresetId === server.id
+    const isJustSaved = recentlySavedId === server.id
+    let actionText = t('mcp.registry.installAction')
+    if (isBusy) {
+      actionText = '⏳ ' + t('mcp.saving')
+    } else if (isJustSaved) {
+      actionText = '✓ ' + t('mcp.saved')
+    } else if (isInstalled) {
+      actionText = `✓ ${t('mcp.quick.installedTag')}`
+    }
+    return (
+      <Button
+        variant={isInstalled ? 'outline' : 'primary'}
+        size="sm"
+        disabled={quickBusy || (isInstalled && !isJustSaved)}
+        onClick={() => { void quickInstallFromOnline(server) }}
+      >
+        {actionText}
+      </Button>
+    )
   }
 
   const filteredPresets = selectedCategory === 'all'
@@ -1228,28 +1381,8 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
             {viewMode === 'grid' ? (
               <div className={css.quickGrid}>
                 {filteredPresets.map((preset) => {
-                  const installed = servers.some(s => s.id === preset.id)
-                  const iconClass = css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? ''
-                  const cardToken = presetTokens[preset.id] ?? quickToken
-                  const cardPath = presetPaths[preset.id] ?? quickPath
-                  const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
-                  const isBusy = busyPresetId === preset.id
-                  const isJustSaved = recentlySavedId === preset.id
-                  const isActionDisabled = quickBusy
-                    || (installed && !hasInputs && !isJustSaved)
-                    || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
-                    || (!installed && preset.requiresExtraText === true && cardPath.trim() === '')
-
-                  let actionText = t('mcp.quick.action')
-                  if (isBusy) {
-                    actionText = '⏳ ' + t('mcp.saving')
-                  } else if (isJustSaved) {
-                    actionText = '✓ ' + t('mcp.saved')
-                  } else if (installed) {
-                    actionText = hasInputs
-                      ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
-                      : `✓ ${t('mcp.quick.installedTag')}`
-                  }
+                  const row = presetRowState(preset)
+                  const { installed, iconClass, cardToken, cardPath, actionDisabled, actionText } = row
 
                   return (
                     <div key={preset.id} className={`${css.onlineCard} ${installed ? css.onlineCardInstalled : ''}`}>
@@ -1271,37 +1404,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                         </div>
                       </div>
                       <p className={css.onlineDesc}>{t(preset.hintKey)}</p>
-                      {preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined ? (
-                        <div className={css.quickFields}>
-                          {preset.tokenKey !== undefined ? (
-                            <input
-                              className={css.input}
-                              type="password"
-                              value={cardToken}
-                              placeholder={t(preset.tokenKey)}
-                              aria-label={t(preset.tokenKey)}
-                              onChange={(event) => {
-                                const val = event.target.value
-                                setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
-                                setQuickToken(val)
-                              }}
-                            />
-                          ) : null}
-                          {preset.extraTextLabelKey !== undefined ? (
-                            <input
-                              className={css.input}
-                              value={cardPath}
-                              placeholder={t(preset.extraTextLabelKey)}
-                              aria-label={t(preset.extraTextLabelKey)}
-                              onChange={(event) => {
-                                const val = event.target.value
-                                setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
-                                setQuickPath(val)
-                              }}
-                            />
-                          ) : null}
-                        </div>
-                      ) : null}
+                      {presetFields(preset, row, css.input, true)}
                       <div className={css.onlineFooter}>
                         <div className={css.onlineStats}>
                           <span className={css.onlineUses}>
@@ -1326,7 +1429,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                           <Button
                             variant={installed ? 'outline' : 'primary'}
                             size="sm"
-                            disabled={isActionDisabled}
+                            disabled={actionDisabled}
                             onClick={() => { void quickInstall(preset, cardToken, cardPath) }}
                           >
                             {actionText}
@@ -1340,28 +1443,8 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
             ) : (
               <div className={css.tableView}>
                 {filteredPresets.map((preset) => {
-                  const installed = servers.some(s => s.id === preset.id)
-                  const iconClass = css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? ''
-                  const cardToken = presetTokens[preset.id] ?? quickToken
-                  const cardPath = presetPaths[preset.id] ?? quickPath
-                  const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
-                  const isBusy = busyPresetId === preset.id
-                  const isJustSaved = recentlySavedId === preset.id
-                  const isActionDisabled = quickBusy
-                    || (installed && !hasInputs && !isJustSaved)
-                    || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
-                    || (!installed && preset.requiresExtraText === true && cardPath.trim() === '')
-
-                  let actionText = t('mcp.quick.action')
-                  if (isBusy) {
-                    actionText = '⏳ ' + t('mcp.saving')
-                  } else if (isJustSaved) {
-                    actionText = '✓ ' + t('mcp.saved')
-                  } else if (installed) {
-                    actionText = hasInputs
-                      ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
-                      : `✓ ${t('mcp.quick.installedTag')}`
-                  }
+                  const row = presetRowState(preset)
+                  const { installed, iconClass, cardToken, cardPath, actionDisabled, actionText } = row
 
                   return (
                     <div key={preset.id} className={`${css.tableRow} ${installed ? css.tableRowInstalled : ''}`}>
@@ -1371,38 +1454,12 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                         <span className={css.tableCellSub}>{preset.serverName}</span>
                       </div>
                       <span className={css.tableCellDesc} title={t(preset.hintKey)}>{t(preset.hintKey)}</span>
-                      {preset.tokenKey !== undefined ? (
-                        <input
-                          className={`${css.input} ${css.tableFieldInput}`}
-                          type="password"
-                          value={cardToken}
-                          placeholder={t(preset.tokenKey)}
-                          aria-label={t(preset.tokenKey)}
-                          onChange={(event) => {
-                            const val = event.target.value
-                            setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
-                            setQuickToken(val)
-                          }}
-                        />
-                      ) : null}
-                      {preset.extraTextLabelKey !== undefined ? (
-                        <input
-                          className={`${css.input} ${css.tableFieldInput}`}
-                          value={cardPath}
-                          placeholder={t(preset.extraTextLabelKey)}
-                          aria-label={t(preset.extraTextLabelKey)}
-                          onChange={(event) => {
-                            const val = event.target.value
-                            setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
-                            setQuickPath(val)
-                          }}
-                        />
-                      ) : null}
+                      {presetFields(preset, row, `${css.input} ${css.tableFieldInput}`, false)}
                       <div className={css.tableCellActions}>
                         <Button
                           variant={installed ? 'outline' : 'primary'}
                           size="sm"
-                          disabled={isActionDisabled}
+                          disabled={actionDisabled}
                           onClick={() => { void quickInstall(preset, cardToken, cardPath) }}
                         >
                           {actionText}
@@ -1473,18 +1530,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                       return (
                         <div key={s.id} className={`${css.onlineCard} ${isInstalled ? css.onlineCardInstalled : ''}`}>
                           <div className={css.onlineCardHeader}>
-                            <div className={css.onlineIcon}>
-                              {s.iconUrl ? (
-                                <img
-                                  src={s.iconUrl}
-                                  alt={s.displayName || s.qualifiedName}
-                                  className={css.onlineIconImg}
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                />
-                              ) : (
-                                <GlobeIcon size={20} />
-                              )}
-                            </div>
+                            {registryIcon(s, css.onlineIcon, 20)}
                             <div className={css.onlineMeta}>
                               <div className={css.onlineTitleRow}>
                                 <span className={css.onlineTitle}>{s.displayName || s.qualifiedName}</span>
@@ -1514,28 +1560,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                               >
                                 ⚙️
                               </Button>
-                              {(() => {
-                                const isBusy = busyPresetId === s.id
-                                const isJustSaved = recentlySavedId === s.id
-                                let actionText = t('mcp.registry.installAction')
-                                if (isBusy) {
-                                  actionText = '⏳ ' + t('mcp.saving')
-                                } else if (isJustSaved) {
-                                  actionText = '✓ ' + t('mcp.saved')
-                                } else if (isInstalled) {
-                                  actionText = `✓ ${t('mcp.quick.installedTag')}`
-                                }
-                                return (
-                                  <Button
-                                    variant={isInstalled ? 'outline' : 'primary'}
-                                    size="sm"
-                                    disabled={quickBusy || (isInstalled && !isJustSaved)}
-                                    onClick={() => { void quickInstallFromOnline(s) }}
-                                  >
-                                    {actionText}
-                                  </Button>
-                                )
-                              })()}
+                              {registryInstallButton(s, isInstalled)}
                             </div>
                           </div>
                         </div>
@@ -1549,18 +1574,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                       const isInstalled = servers.some(srv => srv.id === id || srv.serverName === s.qualifiedName.split('/').pop())
                       return (
                         <div key={s.id} className={`${css.tableRow} ${isInstalled ? css.tableRowInstalled : ''}`}>
-                          <div className={css.tableCellIcon}>
-                            {s.iconUrl ? (
-                              <img
-                                src={s.iconUrl}
-                                alt={s.displayName || s.qualifiedName}
-                                className={css.onlineIconImg}
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                              />
-                            ) : (
-                              <GlobeIcon size={16} />
-                            )}
-                          </div>
+                          {registryIcon(s, css.tableCellIcon, 16)}
                           <div className={css.tableCellPrimary}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span className={css.tableCellTitle}>{s.displayName || s.qualifiedName}</span>
@@ -1581,28 +1595,7 @@ export function McpSection({ ops, t }: McpSectionComponentProps) {
                             >
                               ⚙️
                             </Button>
-                            {(() => {
-                              const isBusy = busyPresetId === s.id
-                              const isJustSaved = recentlySavedId === s.id
-                              let actionText = t('mcp.registry.installAction')
-                              if (isBusy) {
-                                actionText = '⏳ ' + t('mcp.saving')
-                              } else if (isJustSaved) {
-                                actionText = '✓ ' + t('mcp.saved')
-                              } else if (isInstalled) {
-                                actionText = `✓ ${t('mcp.quick.installedTag')}`
-                              }
-                              return (
-                                <Button
-                                  variant={isInstalled ? 'outline' : 'primary'}
-                                  size="sm"
-                                  disabled={quickBusy || (isInstalled && !isJustSaved)}
-                                  onClick={() => { void quickInstallFromOnline(s) }}
-                                >
-                                  {actionText}
-                                </Button>
-                              )
-                            })()}
+                            {registryInstallButton(s, isInstalled)}
                           </div>
                         </div>
                       )

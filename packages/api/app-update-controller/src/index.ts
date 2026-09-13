@@ -134,14 +134,7 @@ export class AppUpdateController extends TypertRemoteService {
   async check(signal: AbortSignal): Promise<AppUpdateCheckValue> {
     const appRoot = this.requireCheckout()
     const runGit = this.bindGit(appRoot, signal, this.readTimeoutMs)
-    try {
-      // Read-only on the working tree: refs and tags only, never a pull.
-      await runGit(['fetch', 'origin', '--tags', '--quiet'])
-    } catch (error) {
-      throw isMissingGit(error)
-        ? new RemoteError('update/git-unavailable', 'git was not found on the host PATH', {}, { cause: error })
-        : new RemoteError('update/fetch-failed', `git fetch failed: ${messageOf(error)}`, {}, { cause: error })
-    }
+    await this.fetchTags(runGit)
     const currentVersion = this.readVersion(appRoot)
     const latestVersion = await this.latestVersion(runGit)
     return {
@@ -164,13 +157,7 @@ export class AppUpdateController extends TypertRemoteService {
   async apply(signal: AbortSignal): Promise<AppUpdateApplyValue> {
     const appRoot = this.requireCheckout()
     const runGit = this.bindGit(appRoot, signal, this.applyTimeoutMs)
-    try {
-      await runGit(['fetch', 'origin', '--tags', '--quiet'])
-    } catch (error) {
-      throw isMissingGit(error)
-        ? new RemoteError('update/git-unavailable', 'git was not found on the host PATH', {}, { cause: error })
-        : new RemoteError('update/fetch-failed', `git fetch failed: ${messageOf(error)}`, {}, { cause: error })
-    }
+    await this.fetchTags(runGit)
     // Resolved at apply time, so a release newer than the last check is what
     // actually gets applied.
     const tag = await this.latestTag(runGit)
@@ -226,6 +213,23 @@ export class AppUpdateController extends TypertRemoteService {
       )
     }
     return appRoot
+  }
+
+  /**
+   * Fetch the remote's tags into the checkout, read-only on the working tree
+   * (refs and tags only, never a pull).
+   * @param runGit - the git runner bound to this checkout and stage ceiling.
+   * @throws RemoteError `update/git-unavailable` when `git` is missing from the
+   * host PATH, or `update/fetch-failed` when the fetch itself fails.
+   */
+  private async fetchTags(runGit: GitRunner): Promise<void> {
+    try {
+      await runGit(['fetch', 'origin', '--tags', '--quiet'])
+    } catch (error) {
+      throw isMissingGit(error)
+        ? new RemoteError('update/git-unavailable', 'git was not found on the host PATH', {}, { cause: error })
+        : new RemoteError('update/fetch-failed', `git fetch failed: ${messageOf(error)}`, {}, { cause: error })
+    }
   }
 
   /** The newest release tag, or null when resolution fails for any reason. */
