@@ -9,13 +9,15 @@ name: E2E (real DeepSeek API)
 # pull_request IS a trigger, but GitHub withholds repo secrets from BOTH forked
 # PRs and Dependabot PRs (the latter are same-repo, fork==false, but still
 # keyless). The job-level `if:` below skips the whole job for those untrusted
-# PRs. The Dependabot test keys on the PR AUTHOR (pull_request.user.login), not
-# github.actor (the run trigger) — a maintainer reopening a Dependabot PR would
-# make github.actor human while the PR is still keyless. When the job runs, the
-# secret is expected, so the preflight hard-fails if it's missing (a missing
-# secret would otherwise make the self-skipping suite report a false green). A
-# job skipped by a job-level `if:` reports as a SUCCESSFUL check, so this
-# workflow is safe to use as a required status check if desired.
+# PRs, and the `secret-presence` job skips it — with an annotation — when the
+# repo has no secret configured (this fork). The Dependabot test keys on the PR
+# AUTHOR (pull_request.user.login), not github.actor (the run trigger) — a
+# maintainer reopening a Dependabot PR would make github.actor human while the
+# PR is still keyless. When the job runs, the secret is expected, so the
+# preflight hard-fails if it is missing (a missing secret would otherwise make
+# the self-skipping suite report a false green). A job skipped by a job-level
+# `if:` reports as a SUCCESSFUL check, so this workflow is safe to use as a
+# required status check if desired.
 #
 # SECURITY — NEVER change this trigger to `pull_request_target`. `pull_request`
 # checks out and runs the PR's HEAD code WITHOUT secrets for forks, which is what
@@ -50,14 +52,38 @@ env:
   DSH_TELEMETRY_DISABLED: '1'
 
 jobs:
+  # A repo without the secret cannot satisfy the keyless preflight below, so
+  # detect presence up front and skip the real-API job with an annotation rather
+  # than a hard failure. Adding the secret re-enables the job unchanged.
+  secret-presence:
+    runs-on: ubuntu-latest
+    name: secret presence
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DEEPSEEK_API_KEY:-}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::DEEPSEEK_API_KEY_EXTERNAL is not configured; skipping the real-API e2e job."
+          fi
+
   e2e:
+    needs: secret-presence
     runs-on: ubuntu-latest
     name: e2e
-    # Run on every trusted event. Skip untrusted PRs (forks + Dependabot) where
-    # the secret is withheld — they would otherwise hard-fail the preflight.
+    # Run on every trusted event with the secret present. Skip untrusted PRs
+    # (forks + Dependabot) where the secret is withheld — they would otherwise
+    # hard-fail the preflight.
     if: >-
-      github.event_name != 'pull_request'
-      || !(github.event.pull_request.head.repo.fork || github.event.pull_request.user.login == 'dependabot[bot]')
+      needs.secret-presence.outputs.configured == 'true'
+      && (github.event_name != 'pull_request'
+      || !(github.event.pull_request.head.repo.fork || github.event.pull_request.user.login == 'dependabot[bot]'))
     # Profile e2e files can each own several complete dsh subprocess trees, so
     # four file workers preserve process/PTY headroom. Tests retain 120s/test
     # and retry 2; 45m still bounds retry storms against a slow API.

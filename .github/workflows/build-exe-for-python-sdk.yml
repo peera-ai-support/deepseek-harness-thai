@@ -362,6 +362,7 @@ jobs:
           }
 
       - name: Preflight installed-wheel real API test (POSIX)
+        id: realapi-posix
         if: >-
           inputs.ci
           && runner.os != 'Windows'
@@ -373,11 +374,14 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${DEEPSEEK_API_KEY:-}" ]; then
-            echo "::error::DEEPSEEK_API_KEY_EXTERNAL is empty; the installed-wheel real API test cannot self-skip."
-            exit 1
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::DEEPSEEK_API_KEY_EXTERNAL is not configured; skipping the installed-wheel real API test."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Preflight installed-wheel real API test (Windows)
+        id: realapi-windows
         if: >-
           inputs.ci
           && runner.os == 'Windows'
@@ -389,16 +393,17 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:DEEPSEEK_API_KEY)) {
-            throw 'DEEPSEEK_API_KEY_EXTERNAL is empty; the installed-wheel real API test cannot self-skip.'
+            "present=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "::notice::DEEPSEEK_API_KEY_EXTERNAL is not configured; skipping the installed-wheel real API test."
+          } else {
+            "present=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
       - name: Run installed-wheel real API black-box test (POSIX)
         if: >-
           inputs.ci
           && runner.os != 'Windows'
-          && (github.event_name != 'pull_request'
-              || !(github.event.pull_request.head.repo.fork
-                   || github.event.pull_request.user.login == 'dependabot[bot]'))
+          && steps.realapi-posix.outputs.present == 'true'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
           DEEPSEEK_BASE_URL: https://api.deepseek.com
@@ -416,9 +421,7 @@ jobs:
         if: >-
           inputs.ci
           && runner.os == 'Windows'
-          && (github.event_name != 'pull_request'
-              || !(github.event.pull_request.head.repo.fork
-                   || github.event.pull_request.user.login == 'dependabot[bot]'))
+          && steps.realapi-windows.outputs.present == 'true'
         shell: pwsh
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
