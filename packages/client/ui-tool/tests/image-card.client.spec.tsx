@@ -15,9 +15,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { RunningToolCall, ToolResultNode, SessionListState, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import type { RunningToolCall, ToolResultNode } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MessageImageLoader } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
@@ -55,7 +57,7 @@ const withImage = (attachment: unknown) => [
 
 const running = (over?: Partial<RunningToolCall>): RunningToolCall => ({
   callId: 'c1', name: 'read_image', argsRaw: ARGS,
-  turn: 1, step: 1, time: 1_000, callView: null, subCalls: [], ...over,
+  turn: 1, step: 1, time: 1_000, subCalls: [], ...over,
 })
 
 /**
@@ -72,13 +74,11 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => ({
     { type: 'image', attachment: sampleImage },
   ],
   isError: false,
-  callView: null,
-  resultView: null,
   meta: imageMeta(), subCalls: [], ...over,
-} as ToolResultNode)
+} as unknown as ToolResultNode)
 
 /**
- * Test-owned attachment presentation stub: claims the declared
+ * A renderSlot stub standing in for the attachment presentation plugin's
  * `tool.call.images` gallery. The owner is the real `ToolImagesOwnerProps` —
  * `MessageImageSource` is a union of a durable attachment arm and a
  * submission-echo preview arm, so the stub renders both.
@@ -86,14 +86,13 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => ({
 const stubRenderSlot = (): PropsRenderSlots<'tool.call.images'>['renderSlot'] => (
   vi.fn((_key: 'tool.call.images', owner: ToolImagesOwnerProps) => (
     <div data-images>
-      {owner.images.map((image, index) => {
-        const item = image as { attachment?: { attachmentId: string }; preview?: { url: string } }
-        return item.attachment ? (
-          <span key={item.attachment.attachmentId} data-image-id={item.attachment.attachmentId} />
+      {owner.images.map((image, index) => (
+        'attachment' in image ? (
+          <span key={image.attachment.attachmentId} data-image-id={image.attachment.attachmentId} />
         ) : (
-          <span key={index} data-preview-url={item.preview?.url} />
+          <span key={index} data-preview-url={image.preview.url} />
         )
-      })}
+      ))}
     </div>
   )) as unknown as PropsRenderSlots<'tool.call.images'>['renderSlot']
 )
@@ -202,7 +201,7 @@ describe('imageCardModel', () => {
       expect(() => imageCardModel(settled({ meta }))).not.toThrow()
       expect(imageCardModel(settled({ meta }))).toBeNull()
     }
-    const nested = imageCardModel(settled({ parentCallId: 'parent', meta: undefined } as never))
+    const nested = imageCardModel(settled({ parentCallId: 'parent', meta: undefined }))
     expect(nested).not.toBeNull()
     expect(nested?.label).toBe('shots/card.png')
   })
@@ -249,12 +248,12 @@ describe('imageCardModel', () => {
     // A nested call (a read_image dispatched from inside run_code) settles as a
     // ToolResultNode too and renders the card; it persists no presentationMeta,
     // so the label falls back to the call's file_path argument.
-    const nested = imageCardModel(settled({ parentCallId: 'parent', meta: undefined } as never))
+    const nested = imageCardModel(settled({ parentCallId: 'parent', meta: undefined }))
     expect(nested).not.toBeNull()
     expect(nested?.label).toBe('shots/card.png')
     expect(nested?.images).toHaveLength(1)
     // Persisted meta still wins over the argument when a nested call has one.
-    const withMeta = imageCardModel(settled({ parentCallId: 'parent', meta: { path: 'shots/persisted.png' } } as never))
+    const withMeta = imageCardModel(settled({ parentCallId: 'parent', meta: { path: 'shots/persisted.png' } }))
     expect(withMeta?.label).toBe('shots/persisted.png')
   })
 

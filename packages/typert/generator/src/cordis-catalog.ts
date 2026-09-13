@@ -5,6 +5,7 @@
  * @module @deepseek-ai/dsh-typert-generator
  */
 
+import { compareArtifactKeys } from './analyzer.ts'
 import { WorkspaceAnalyzer, WorkspaceCaches } from './analyzer.ts'
 import { childTypeNodeIds } from './model.ts'
 import { TypeGraphRenderer } from './renderer.ts'
@@ -168,7 +169,7 @@ export class CordisCatalogProjector {
   renderRuntimeApi(model: CordisCatalogModel): string {
     const services = [...model.services, ...(this.policy.runtimeServices ?? [])]
       .filter(service => !this.policy.runtimeServiceExclusions?.has(service.key))
-      .sort((left, right) => left.key.localeCompare(right.key))
+      .sort((left, right) => compareArtifactKeys(left.key, right.key))
     return renderRuntimeApi(
       services,
       model.events,
@@ -324,7 +325,7 @@ export class CordisCatalogProjector {
     }
     reportViolations('gen-cordis-catalog', violations)
     reportTypeLinkViolations('gen-cordis-catalog', typeLinkViolations)
-    return entries.sort((left, right) => left.key.localeCompare(right.key))
+    return entries.sort((left, right) => compareArtifactKeys(left.key, right.key))
   }
 
   private runtimeTypes(
@@ -654,7 +655,7 @@ function referencedTypes(
   }
   return [...included]
     .map(([name, declaration]) => ({ name, declaration }))
-    .sort((left, right) => left.name.localeCompare(right.name))
+    .sort((left, right) => compareArtifactKeys(left.name, right.name))
 }
 
 function firstSentence(doc: string): string {
@@ -784,7 +785,7 @@ function renderRuntimeApi(
     '/** Every harness event, sorted by name. */',
     'export const EVENT_API: readonly EventApiEntry[] = [',
   )
-  for (const event of [...events].sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const event of [...events].sort((left, right) => compareArtifactKeys(left.name, right.name))) {
     const contract = parseJsDoc(event.jsDoc)
     lines.push('  {')
     lines.push(`    name: ${quote(event.name)},`)
@@ -826,7 +827,7 @@ function renderRuntimeApi(
     '    const next: string[] = []',
     '    for (const entry of TYPE_API) {',
     '      if (included.has(entry.name)) continue',
-    '      const pattern = new RegExp(`\\b${entry.name}\\b`)',
+    '      const pattern = new RegExp(`\\\\b${entry.name}\\\\b`)',
     '      if (!frontier.some(text => pattern.test(text))) continue',
     '      included.add(entry.name)',
     '      next.push(entry.declaration)',
@@ -1023,7 +1024,7 @@ export function renderPageRegion(page: string, services: ServiceEntry[], events:
   const scopes = [...new Set(events.map(e => e.scope))].sort()
   for (const scope of scopes) {
     lines.push(...anchorFor(`${scope}/* events`), `### \`${scope}/*\` events`, '')
-    for (const e of events.filter(x => x.scope === scope).sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const e of events.filter(x => x.scope === scope).sort((a, b) => compareArtifactKeys(a.name, b.name))) {
       lines.push(...renderEvent(e, page, policy.linkedTypePages))
     }
   }

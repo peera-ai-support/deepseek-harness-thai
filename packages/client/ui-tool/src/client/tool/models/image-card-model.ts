@@ -1,7 +1,7 @@
 /** Pure image-card derivation from raw result content and metadata. @module */
 import type { AttachmentId, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
-import { abbreviateHomePath } from '@deepseek-ai/dsh-client-runtime/client'
-import { relativizeToCwd, type ToolCallBlock } from './tool-call-model.ts'
+import { abbreviateHomePath, relativizeToCwd } from '@deepseek-ai/dsh-util-workspace-path'
+import type { ToolCallBlock } from './tool-call-model.ts'
 import { parsedToolCall } from './raw-tool-call.ts'
 
 /**
@@ -222,8 +222,7 @@ export function imageCardModel(
   // declines — malformed tool data falls back to the generic card, which shows
   // the flattened content rather than an author-typed path.
   const metaPath = imageMeta(block.meta)?.path
-  const parentCallId = (block as { parentCallId?: string }).parentCallId
-  const path = metaPath ?? (parentCallId !== undefined ? filePath : null)
+  const path = metaPath ?? (block.parentCallId !== undefined ? filePath : null)
   if (path === null) return null
   // The card renders only text and image blocks; a block of any other type must
   // not be silently hidden, so the whole card declines to the generic form.

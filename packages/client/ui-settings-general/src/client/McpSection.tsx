@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
+import type { McpOperations } from './mcp-operations.ts'
+import { secretEnvName } from './mcp-secrets.ts'
 import type { McpHeaderOrEnv, McpServerEntry, McpServerStatus, McpValue } from '@deepseek-ai/dsh-api-remotes/client'
 import { GitHubIcon } from './GitHubIcon.tsx'
 import {
@@ -56,8 +57,8 @@ function ChevronDownIcon({ size = 14 }: { size?: number }) {
 
 /** Registrant-owned dependencies of {@link McpSection}. */
 export interface McpSectionInjected {
-  /** The connected host handle: the mcp RPC face. */
-  connection: ConnectionHandle
+  /** Host operations over the mcp Remote namespace. */
+  ops: McpOperations
 }
 
 /** Section owner share, localized copy, and the registrant's state face. */
@@ -99,11 +100,6 @@ const ENV_MARKER = '$env:'
 /** Values at least this long are treated as pasted secrets and exported on save. */
 const SECRET_MIN_LENGTH = 16
 
-function secretEnvName(serverName: string, key: string): string {
-  const clean = (text: string) => (text.toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'X')
-  return `DSH_MCP_${clean(serverName)}_${clean(key)}`
-}
-
 /** Item fetched from the Smithery online registry. */
 interface OnlineServerItem {
   id: string
@@ -117,7 +113,7 @@ interface OnlineServerItem {
 }
 
 function formatUses(count?: number): string {
-  if (count === undefined || count === null) return '0'
+  if (count === undefined) return '0'
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`
   return String(count)
@@ -171,6 +167,22 @@ interface QuickPreset {
     | 'mcp.quick.tokenLabel.mcp-github'
     | 'mcp.quick.tokenLabel.mcp-brave'
     | 'mcp.quick.tokenLabel.mcp-postgres'
+}
+
+/** The install state one preset row renders from, shared by the card and table catalog layouts. */
+interface PresetRowState {
+  /** A configured row already carries this preset's id. */
+  installed: boolean
+  /** Brand-mark class of the preset's catalog icon ('' when it has no dedicated mark). */
+  iconClass: string
+  /** Credential field text: the row's own edit, else the shared quick-token field. */
+  cardToken: string
+  /** Extra-text field text (e.g. a folder path): the row's own edit, else the shared quick-path field. */
+  cardPath: string
+  /** The install button is disabled for the row's current state. */
+  actionDisabled: boolean
+  /** The install button's label for the row's current state. */
+  actionText: string
 }
 
 /** Predefined quick-install presets. Add a row here (plus its locale keys) to offer another server. */
@@ -660,12 +672,12 @@ function resolveServerInfo(server: McpServerEntry, onlineServers: OnlineServerIt
 /**
  * Render the MCP section: the managed server list with live connection
  * statuses, plus a Form/JSON editor that inserts/replaces rows of
- * `$DSH_HOME/cordis.patch.yml` via the mcp RPC. Secrets are entered as
+ * `$DSH_HOME/cordis.patch.yml` through the Host operations face. Secrets are entered as
  * `$env:VAR` references inside the JSON header values, never as literals.
- * @param props - section owner share, localized copy, and the connection face.
+ * @param props - section owner share, localized copy, and the Host operations face.
  * @returns the section element tree.
  */
-export function McpSection({ connection, t }: McpSectionComponentProps) {
+export function McpSection({ ops, t }: McpSectionComponentProps) {
   const [servers, setServers] = useState<McpServerEntry[]>([])
   const [statuses, setStatuses] = useState<McpServerStatus[]>([])
   const [filePath, setFilePath] = useState('')
@@ -712,12 +724,11 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     setTestResults(prev => ({ ...prev, [server.serverName]: { testing: true } }))
     const start = performance.now()
     try {
-      const response = await connection.api.mcp.status({})
+      const response = await ops.status()
       const latencyMs = Math.max(1, Math.round(performance.now() - start))
-      const result = response.result
-      if (result.ok) {
-        setStatuses(result.value.statuses)
-        const live = result.value.statuses.find(s => s.serverName === server.serverName)
+      if (response.ok) {
+        setStatuses(response.value.statuses)
+        const live = response.value.statuses.find(s => s.serverName === server.serverName)
         if (live?.phase === 'connected') {
           setTestResults(prev => ({
             ...prev,
@@ -741,7 +752,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
         }))
         return
       }
-      const failMessage = result.error.message
+      const failMessage = response.message
       setTestResults(prev => ({
         ...prev,
         [server.serverName]: {
@@ -767,7 +778,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
 
   const copyText = (id: string, text: string) => {
     if (!text) return
-    void navigator.clipboard?.writeText(text)
+    void navigator.clipboard.writeText(text)
     setCopiedId(id)
     setTimeout(() => {
       setCopiedId(prev => (prev === id ? null : prev))
@@ -781,13 +792,13 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const load = async () => {
     setStatus({ kind: 'loading' })
     try {
-      const response = await connection.api.mcp.listServers({})
-      if (!response.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.loadFailed', { message: response.result.error.message }) })
+      const response = await ops.listServers()
+      if (!response.ok) {
+        setStatus({ kind: 'error', message: t('mcp.loadFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
-      setFilePath(response.result.value.filePath)
+      setServers(response.value.servers)
+      setFilePath(response.value.filePath)
       setStatus({ kind: 'idle' })
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.loadFailed', { message: String(error) }) })
@@ -796,8 +807,8 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
 
   const loadStatus = async () => {
     try {
-      const response = await connection.api.mcp.status({})
-      if (response.result.ok) setStatuses(response.result.value.statuses)
+      const response = await ops.status()
+      if (response.ok) setStatuses(response.value.statuses)
     } catch {
       // The snapshot is best-effort; the list itself already surfaced failures.
     }
@@ -838,9 +849,9 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       for (const pair of pairs) {
         if (pair.value.kind === 'literal' && (pair.value.value?.length ?? 0) >= SECRET_MIN_LENGTH) {
           const name = secretEnvName(server.serverName, pair.name)
-          const response = await connection.api.mcp.importSecret({ name, value: pair.value.value ?? '' })
-          if (!response.result.ok) {
-            throw new Error(t('mcp.saveFailed', { message: response.result.error.message }))
+          const response = await ops.importSecret(name, pair.value.value ?? '')
+          if (!response.ok) {
+            throw new Error(t('mcp.saveFailed', { message: response.message }))
           }
           names.push(name)
           out.push({ name: pair.name, value: { kind: 'env', env: name } })
@@ -873,12 +884,12 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     }
     setStatus({ kind: 'saving' })
     try {
-      const response = await connection.api.mcp.upsertServer({ server: entry })
-      if (!response.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+      const response = await ops.upsertServer(entry)
+      if (!response.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
+      setServers(response.value.servers)
       setSecretNote(exported.length > 0 ? t('mcp.exportedNote', { names: exported.join(', ') }) : '')
       closeForm()
       setStatus({ kind: 'saved' })
@@ -924,12 +935,12 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
   const remove = async (server: McpServerEntry) => {
     setStatus({ kind: 'saving' })
     try {
-      const response = await connection.api.mcp.removeServer({ id: server.id })
-      if (!response.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+      const response = await ops.removeServer(server.id)
+      if (!response.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
+      setServers(response.value.servers)
       setStatus({ kind: 'saved' })
       void loadStatus()
     } catch (error: unknown) {
@@ -946,15 +957,13 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     // Optimistic update: toggle UI state immediately
     setServers(prev => prev.map(s => (s.id === server.id ? optimisticEntry : s)))
     try {
-      const response = await connection.api.mcp.upsertServer({
-        server: optimisticEntry,
-      })
-      if (!response.result.ok) {
+      const response = await ops.upsertServer(optimisticEntry)
+      if (!response.ok) {
         setServers(prev => prev.map(s => (s.id === server.id ? server : s)))
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
+      setServers(response.value.servers)
       void loadStatus()
     } catch (error: unknown) {
       setServers(prev => prev.map(s => (s.id === server.id ? server : s)))
@@ -1036,6 +1045,22 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     setStatus({ kind: 'idle' })
   }
 
+  /** Publish the saved note, flag the row as just saved, and refresh live status. */
+  const markRowSaved = (id: string) => {
+    setStatus({ kind: 'saved' })
+    setRecentlySavedId(id)
+    setTimeout(() => {
+      setRecentlySavedId(prev => (prev === id ? null : prev))
+    }, 2500)
+    void loadStatus()
+  }
+
+  /** Clear the install-in-flight markers once an upsert settles. */
+  const clearInstallBusy = () => {
+    setQuickBusy(false)
+    setBusyPresetId(null)
+  }
+
   const quickInstallFromOnline = async (server: OnlineServerItem) => {
     const id = `mcp-${server.qualifiedName.replace(/[^a-zA-Z0-9_-]/g, '-')}`
     const serverName = server.qualifiedName.split('/').pop()?.replace(/[^a-zA-Z0-9_-]/g, '_') || 'mcp_server'
@@ -1052,23 +1077,17 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
     setQuickBusy(true)
     setBusyPresetId(server.id)
     try {
-      const response = await connection.api.mcp.upsertServer({ server: entry })
-      if (!response.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+      const response = await ops.upsertServer(entry)
+      if (!response.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
-      setStatus({ kind: 'saved' })
-      setRecentlySavedId(server.id)
-      setTimeout(() => {
-        setRecentlySavedId(prev => (prev === server.id ? null : prev))
-      }, 2500)
-      void loadStatus()
+      setServers(response.value.servers)
+      markRowSaved(server.id)
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     } finally {
-      setQuickBusy(false)
-      setBusyPresetId(null)
+      clearInstallBusy()
     }
   }
 
@@ -1085,23 +1104,18 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       if (preset.tokenKey !== undefined) {
         const raw = activeToken.trim()
         const value = preset.tokenBearerWrap ? `Bearer ${raw}` : raw
-        const secret = await connection.api.mcp.importSecret({
-          name: preset.envName,
-          value,
-        })
-        if (!secret.result.ok) {
-          setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: secret.result.error.message }) })
+        const secret = await ops.importSecret(preset.envName, value)
+        if (!secret.ok) {
+          setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: secret.message }) })
           return
         }
       }
-      const response = await connection.api.mcp.upsertServer({
-        server: quickEntry(preset, homeDir, activePath, activeToken),
-      })
-      if (!response.result.ok) {
-        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.result.error.message }) })
+      const response = await ops.upsertServer(quickEntry(preset, homeDir, activePath, activeToken))
+      if (!response.ok) {
+        setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: response.message }) })
         return
       }
-      setServers(response.result.value.servers)
+      setServers(response.value.servers)
       setQuickToken('')
       setQuickPath('')
       setPresetTokens(prev => ({ ...prev, [preset.id]: '' }))
@@ -1109,18 +1123,145 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
       setSecretNote(preset.tokenKey !== undefined
         ? t('mcp.quickInstalled', { server: preset.serverName, env: preset.envName })
         : '')
-      setStatus({ kind: 'saved' })
-      setRecentlySavedId(preset.id)
-      setTimeout(() => {
-        setRecentlySavedId(prev => (prev === preset.id ? null : prev))
-      }, 2500)
-      void loadStatus()
+      markRowSaved(preset.id)
     } catch (error: unknown) {
       setStatus({ kind: 'error', message: t('mcp.saveFailed', { message: String(error) }) })
     } finally {
-      setQuickBusy(false)
-      setBusyPresetId(null)
+      clearInstallBusy()
     }
+  }
+
+  /**
+   * The install state one preset row renders from, shared by the card grid and
+   * the table layout.
+   * @param preset - the preset the row renders.
+   * @returns the install flag, brand-icon class, field texts, and the action button's disabled flag and label.
+   */
+  const presetRowState = (preset: QuickPreset) => {
+    const installed = servers.some(s => s.id === preset.id)
+    const cardToken = presetTokens[preset.id] ?? quickToken
+    const cardPath = presetPaths[preset.id] ?? quickPath
+    const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
+    const isJustSaved = recentlySavedId === preset.id
+
+    let actionText = t('mcp.quick.action')
+    if (busyPresetId === preset.id) {
+      actionText = '⏳ ' + t('mcp.saving')
+    } else if (isJustSaved) {
+      actionText = '✓ ' + t('mcp.saved')
+    } else if (installed) {
+      actionText = hasInputs
+        ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
+        : `✓ ${t('mcp.quick.installedTag')}`
+    }
+
+    return {
+      installed,
+      iconClass: css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? '',
+      cardToken,
+      cardPath,
+      actionDisabled: quickBusy
+        || (installed && !hasInputs && !isJustSaved)
+        || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
+        || (!installed && preset.requiresExtraText === true && cardPath.trim() === ''),
+      actionText,
+    }
+  }
+
+  /**
+   * The preset row's optional credential and extra-text fields.
+   * @param preset - the preset the row renders.
+   * @param row - the row state holding both field texts.
+   * @param fieldClass - the input class the layout gives its fields.
+   * @param wrap - wraps the fields in the card layout's field row; the table layout places them as direct row cells.
+   * @returns the fields, or null when the preset defines neither.
+   */
+  const presetFields = (preset: QuickPreset, row: PresetRowState, fieldClass: string | undefined, wrap: boolean) => {
+    if (preset.tokenKey === undefined && preset.extraTextLabelKey === undefined) return null
+
+    const fields = (
+      <>
+        {preset.tokenKey !== undefined ? (
+          <input
+            className={fieldClass}
+            type="password"
+            value={row.cardToken}
+            placeholder={t(preset.tokenKey)}
+            aria-label={t(preset.tokenKey)}
+            onChange={(event) => {
+              const val = event.target.value
+              setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
+              setQuickToken(val)
+            }}
+          />
+        ) : null}
+        {preset.extraTextLabelKey !== undefined ? (
+          <input
+            className={fieldClass}
+            value={row.cardPath}
+            placeholder={t(preset.extraTextLabelKey)}
+            aria-label={t(preset.extraTextLabelKey)}
+            onChange={(event) => {
+              const val = event.target.value
+              setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
+              setQuickPath(val)
+            }}
+          />
+        ) : null}
+      </>
+    )
+    return wrap ? <div className={css.quickFields}>{fields}</div> : fields
+  }
+
+  /**
+   * One online-registry row's icon cell: the server's own mark, else a globe.
+   * @param server - the registry entry the row renders.
+   * @param className - the icon-cell class the layout uses.
+   * @param globeSize - globe size in px for the layout's row height.
+   * @returns the icon cell.
+   */
+  const registryIcon = (server: OnlineServerItem, className: string | undefined, globeSize: number) => (
+    <div className={className}>
+      {server.iconUrl ? (
+        <img
+          src={server.iconUrl}
+          alt={server.displayName || server.qualifiedName}
+          className={css.onlineIconImg}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+      ) : (
+        <GlobeIcon size={globeSize} />
+      )}
+    </div>
+  )
+
+  /**
+   * One online-registry row's install/update button.
+   * @param server - the registry entry the row renders.
+   * @param isInstalled - a configured row already covers this entry.
+   * @returns the button, labelled and disabled for the entry's busy/installed state.
+   */
+  const registryInstallButton = (server: OnlineServerItem, isInstalled: boolean) => {
+    const isBusy = busyPresetId === server.id
+    const isJustSaved = recentlySavedId === server.id
+    let actionText = t('mcp.registry.installAction')
+    if (isBusy) {
+      actionText = '⏳ ' + t('mcp.saving')
+    } else if (isJustSaved) {
+      actionText = '✓ ' + t('mcp.saved')
+    } else if (isInstalled) {
+      actionText = `✓ ${t('mcp.quick.installedTag')}`
+    }
+    return (
+      <Button
+        variant={isInstalled ? 'outline' : 'primary'}
+        size="sm"
+        disabled={quickBusy || (isInstalled && !isJustSaved)}
+        onClick={() => { void quickInstallFromOnline(server) }}
+      >
+        {actionText}
+      </Button>
+    )
   }
 
   const filteredPresets = selectedCategory === 'all'
@@ -1240,28 +1381,8 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
             {viewMode === 'grid' ? (
               <div className={css.quickGrid}>
                 {filteredPresets.map((preset) => {
-                  const installed = servers.some(s => s.id === preset.id)
-                  const iconClass = css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? ''
-                  const cardToken = presetTokens[preset.id] ?? quickToken
-                  const cardPath = presetPaths[preset.id] ?? quickPath
-                  const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
-                  const isBusy = busyPresetId === preset.id
-                  const isJustSaved = recentlySavedId === preset.id
-                  const isActionDisabled = quickBusy
-                    || (installed && !hasInputs && !isJustSaved)
-                    || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
-                    || (!installed && preset.requiresExtraText === true && cardPath.trim() === '')
-
-                  let actionText = t('mcp.quick.action')
-                  if (isBusy) {
-                    actionText = '⏳ ' + t('mcp.saving')
-                  } else if (isJustSaved) {
-                    actionText = '✓ ' + t('mcp.saved')
-                  } else if (installed) {
-                    actionText = hasInputs
-                      ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
-                      : `✓ ${t('mcp.quick.installedTag')}`
-                  }
+                  const row = presetRowState(preset)
+                  const { installed, iconClass, cardToken, cardPath, actionDisabled, actionText } = row
 
                   return (
                     <div key={preset.id} className={`${css.onlineCard} ${installed ? css.onlineCardInstalled : ''}`}>
@@ -1283,37 +1404,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                         </div>
                       </div>
                       <p className={css.onlineDesc}>{t(preset.hintKey)}</p>
-                      {preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined ? (
-                        <div className={css.quickFields}>
-                          {preset.tokenKey !== undefined ? (
-                            <input
-                              className={css.input}
-                              type="password"
-                              value={cardToken}
-                              placeholder={t(preset.tokenKey)}
-                              aria-label={t(preset.tokenKey)}
-                              onChange={(event) => {
-                                const val = event.target.value
-                                setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
-                                setQuickToken(val)
-                              }}
-                            />
-                          ) : null}
-                          {preset.extraTextLabelKey !== undefined ? (
-                            <input
-                              className={css.input}
-                              value={cardPath}
-                              placeholder={t(preset.extraTextLabelKey)}
-                              aria-label={t(preset.extraTextLabelKey)}
-                              onChange={(event) => {
-                                const val = event.target.value
-                                setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
-                                setQuickPath(val)
-                              }}
-                            />
-                          ) : null}
-                        </div>
-                      ) : null}
+                      {presetFields(preset, row, css.input, true)}
                       <div className={css.onlineFooter}>
                         <div className={css.onlineStats}>
                           <span className={css.onlineUses}>
@@ -1338,7 +1429,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                           <Button
                             variant={installed ? 'outline' : 'primary'}
                             size="sm"
-                            disabled={isActionDisabled}
+                            disabled={actionDisabled}
                             onClick={() => { void quickInstall(preset, cardToken, cardPath) }}
                           >
                             {actionText}
@@ -1352,28 +1443,8 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
             ) : (
               <div className={css.tableView}>
                 {filteredPresets.map((preset) => {
-                  const installed = servers.some(s => s.id === preset.id)
-                  const iconClass = css[`presetIcon_${preset.id.replace(/-/g, '_')}`] ?? ''
-                  const cardToken = presetTokens[preset.id] ?? quickToken
-                  const cardPath = presetPaths[preset.id] ?? quickPath
-                  const hasInputs = preset.tokenKey !== undefined || preset.extraTextLabelKey !== undefined
-                  const isBusy = busyPresetId === preset.id
-                  const isJustSaved = recentlySavedId === preset.id
-                  const isActionDisabled = quickBusy
-                    || (installed && !hasInputs && !isJustSaved)
-                    || (!installed && preset.tokenKey !== undefined && cardToken.trim() === '')
-                    || (!installed && preset.requiresExtraText === true && cardPath.trim() === '')
-
-                  let actionText = t('mcp.quick.action')
-                  if (isBusy) {
-                    actionText = '⏳ ' + t('mcp.saving')
-                  } else if (isJustSaved) {
-                    actionText = '✓ ' + t('mcp.saved')
-                  } else if (installed) {
-                    actionText = hasInputs
-                      ? t(preset.tokenKey !== undefined ? 'mcp.quick.updateAction' : 'mcp.quick.update')
-                      : `✓ ${t('mcp.quick.installedTag')}`
-                  }
+                  const row = presetRowState(preset)
+                  const { installed, iconClass, cardToken, cardPath, actionDisabled, actionText } = row
 
                   return (
                     <div key={preset.id} className={`${css.tableRow} ${installed ? css.tableRowInstalled : ''}`}>
@@ -1383,38 +1454,12 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                         <span className={css.tableCellSub}>{preset.serverName}</span>
                       </div>
                       <span className={css.tableCellDesc} title={t(preset.hintKey)}>{t(preset.hintKey)}</span>
-                      {preset.tokenKey !== undefined ? (
-                        <input
-                          className={`${css.input} ${css.tableFieldInput}`}
-                          type="password"
-                          value={cardToken}
-                          placeholder={t(preset.tokenKey)}
-                          aria-label={t(preset.tokenKey)}
-                          onChange={(event) => {
-                            const val = event.target.value
-                            setPresetTokens(prev => ({ ...prev, [preset.id]: val }))
-                            setQuickToken(val)
-                          }}
-                        />
-                      ) : null}
-                      {preset.extraTextLabelKey !== undefined ? (
-                        <input
-                          className={`${css.input} ${css.tableFieldInput}`}
-                          value={cardPath}
-                          placeholder={t(preset.extraTextLabelKey)}
-                          aria-label={t(preset.extraTextLabelKey)}
-                          onChange={(event) => {
-                            const val = event.target.value
-                            setPresetPaths(prev => ({ ...prev, [preset.id]: val }))
-                            setQuickPath(val)
-                          }}
-                        />
-                      ) : null}
+                      {presetFields(preset, row, `${css.input} ${css.tableFieldInput}`, false)}
                       <div className={css.tableCellActions}>
                         <Button
                           variant={installed ? 'outline' : 'primary'}
                           size="sm"
-                          disabled={isActionDisabled}
+                          disabled={actionDisabled}
                           onClick={() => { void quickInstall(preset, cardToken, cardPath) }}
                         >
                           {actionText}
@@ -1485,18 +1530,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                       return (
                         <div key={s.id} className={`${css.onlineCard} ${isInstalled ? css.onlineCardInstalled : ''}`}>
                           <div className={css.onlineCardHeader}>
-                            <div className={css.onlineIcon}>
-                              {s.iconUrl ? (
-                                <img
-                                  src={s.iconUrl}
-                                  alt={s.displayName || s.qualifiedName}
-                                  className={css.onlineIconImg}
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                />
-                              ) : (
-                                <GlobeIcon size={20} />
-                              )}
-                            </div>
+                            {registryIcon(s, css.onlineIcon, 20)}
                             <div className={css.onlineMeta}>
                               <div className={css.onlineTitleRow}>
                                 <span className={css.onlineTitle}>{s.displayName || s.qualifiedName}</span>
@@ -1526,28 +1560,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                               >
                                 ⚙️
                               </Button>
-                              {(() => {
-                                const isBusy = busyPresetId === s.id
-                                const isJustSaved = recentlySavedId === s.id
-                                let actionText = t('mcp.registry.installAction')
-                                if (isBusy) {
-                                  actionText = '⏳ ' + t('mcp.saving')
-                                } else if (isJustSaved) {
-                                  actionText = '✓ ' + t('mcp.saved')
-                                } else if (isInstalled) {
-                                  actionText = `✓ ${t('mcp.quick.installedTag')}`
-                                }
-                                return (
-                                  <Button
-                                    variant={isInstalled ? 'outline' : 'primary'}
-                                    size="sm"
-                                    disabled={quickBusy || (isInstalled && !isJustSaved)}
-                                    onClick={() => { void quickInstallFromOnline(s) }}
-                                  >
-                                    {actionText}
-                                  </Button>
-                                )
-                              })()}
+                              {registryInstallButton(s, isInstalled)}
                             </div>
                           </div>
                         </div>
@@ -1561,18 +1574,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                       const isInstalled = servers.some(srv => srv.id === id || srv.serverName === s.qualifiedName.split('/').pop())
                       return (
                         <div key={s.id} className={`${css.tableRow} ${isInstalled ? css.tableRowInstalled : ''}`}>
-                          <div className={css.tableCellIcon}>
-                            {s.iconUrl ? (
-                              <img
-                                src={s.iconUrl}
-                                alt={s.displayName || s.qualifiedName}
-                                className={css.onlineIconImg}
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                              />
-                            ) : (
-                              <GlobeIcon size={16} />
-                            )}
-                          </div>
+                          {registryIcon(s, css.tableCellIcon, 16)}
                           <div className={css.tableCellPrimary}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span className={css.tableCellTitle}>{s.displayName || s.qualifiedName}</span>
@@ -1593,28 +1595,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                             >
                               ⚙️
                             </Button>
-                            {(() => {
-                              const isBusy = busyPresetId === s.id
-                              const isJustSaved = recentlySavedId === s.id
-                              let actionText = t('mcp.registry.installAction')
-                              if (isBusy) {
-                                actionText = '⏳ ' + t('mcp.saving')
-                              } else if (isJustSaved) {
-                                actionText = '✓ ' + t('mcp.saved')
-                              } else if (isInstalled) {
-                                actionText = `✓ ${t('mcp.quick.installedTag')}`
-                              }
-                              return (
-                                <Button
-                                  variant={isInstalled ? 'outline' : 'primary'}
-                                  size="sm"
-                                  disabled={quickBusy || (isInstalled && !isJustSaved)}
-                                  onClick={() => { void quickInstallFromOnline(s) }}
-                                >
-                                  {actionText}
-                                </Button>
-                              )
-                            })()}
+                            {registryInstallButton(s, isInstalled)}
                           </div>
                         </div>
                       )
@@ -1737,7 +1718,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                   <button
                     type="button"
                     className={`${css.toolsBadgeBtn} ${isExpanded ? (css.toolsBadgeActive ?? '') : ''}`}
-                    onClick={() => toggleTools(server.id)}
+                    onClick={() => { toggleTools(server.id) }}
                     title={t('mcp.showTools')}
                   >
                     <span>⚡</span>
@@ -1802,7 +1783,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                                 type="button"
                                 className={css.toolCopyBtn}
                                 title={t('mcp.copyToolName')}
-                                onClick={() => copyText(tool.name, tool.name)}
+                                onClick={() => { copyText(tool.name, tool.name) }}
                               >
                                 <code className={css.toolPublicName}>{tool.name}</code>
                                 <span className={css.toolCopyFeedback}>
@@ -1910,7 +1891,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                     <input
                       className={css.input}
                       value={draft.id}
-                      placeholder={`mcp-${draft.serverName}`}
+                      placeholder={t('mcp.idPlaceholder', { name: draft.serverName })}
                       aria-label={t('mcp.idLabel')}
                       onChange={(event) => { setDraft({ ...draft, id: event.target.value }) }}
                     />
@@ -1950,7 +1931,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                       <input
                         className={css.input}
                         value={draft.url}
-                        placeholder="https://mcp.example.com/mcp"
+                        placeholder={t('mcp.urlPlaceholder')}
                         aria-label={t('mcp.url')}
                         onChange={(event) => { setDraft({ ...draft, url: event.target.value }) }}
                       />
@@ -1984,7 +1965,7 @@ export function McpSection({ connection, t }: McpSectionComponentProps) {
                     className={css.jsonArea}
                     value={draft.headersJson}
                     spellCheck={false}
-                    placeholder={'{\n  "Authorization": "Bearer your-token"\n}'}
+                    placeholder={t('mcp.headersPlaceholder')}
                     aria-label={t('mcp.headers')}
                     onChange={(event) => { setDraft({ ...draft, headersJson: event.target.value }) }}
                   />

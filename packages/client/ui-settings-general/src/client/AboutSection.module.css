@@ -41,17 +41,3 @@
 .update {
   color: var(--dsw-alias-state-business-primary);
 }
-
-.hint {
-  color: var(--dsw-alias-label-secondary);
-  margin-bottom: 0;
-}
-
-.command {
-  align-self: flex-start;
-  padding: 6px 10px;
-  background: var(--dsw-alias-bg-layer-1);
-  border-radius: 6px;
-  font-family: var(--ds-font-family-code);
-  user-select: all;
-}

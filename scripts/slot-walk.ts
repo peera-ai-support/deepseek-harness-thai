@@ -282,7 +282,7 @@ export function declaredTypes(
 ): TypeDeclaration[] {
   return [...names]
     .flatMap(name => index.get(name) ?? [])
-    .sort((left, right) => left.name.localeCompare(right.name))
+    .sort((left, right) => left.name.localeCompare(right.name, 'en'))
 }
 
 /** Every slot-contract module block in one file, in source order. */

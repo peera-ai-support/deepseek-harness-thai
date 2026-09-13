@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-直接 DeepSeek 适配器的目录编辑器（`DeepSeekModelsEditor`）只编辑 id、显示名、上下文窗口与输出上限。接受图片的 DeepSeek 端点无法从这个编辑器里声明这一点，尽管它的行携带同一份模态列表（[pi-ai 路由默认值](../architecture/2026-08-12-pi-ai-route-default-input-modalities.zh.md) 确立的 `inputModalities`，或 OpenAI 风格的 `input`），而且设置-模型页已经为 pi-ai 提供商档案（`ModelListEditor`）提供了等价开关。
+直接 DeepSeek 适配器的目录编辑器（`DeepSeekModelsEditor`）只编辑 id、显示名、上下文窗口与输出上限。接受图片的 DeepSeek 端点无法从这个编辑器里声明这一点，尽管它的行携带同一份模态列表（[pi-ai 路由默认值](../../archived/architecture/2026-08-12-pi-ai-route-default-input-modalities.md) 确立的 `inputModalities`，或 OpenAI 风格的 `input`），而且设置-模型页已经为 pi-ai 提供商档案（`ModelListEditor`）提供了等价开关。
 
 ## 决策
 

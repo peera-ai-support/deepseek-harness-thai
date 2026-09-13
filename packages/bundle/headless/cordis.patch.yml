@@ -6,12 +6,14 @@
 
 - id: system-prompt
   config:
-    persona: >-
-      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+    personaSuffix: >-
+      Your working directory is {{cwd}}.
       When the MCP memory server is available, check it first: if this conversation or an
       earlier one may have recorded relevant facts, search the memory graph and ground your
       answer in them. When the user states durable personal facts or decisions (specs,
       settings, preferences, choices), record them in the memory graph before continuing.
+    personaPrefix: >-
+      You are a coding agent powered by the {{model}} model.
 
 # The shared module-reload HMR row stays off; the launcher's watch-only
 # fallback still keeps the user patch layers live until the run exits.
@@ -20,11 +22,11 @@
 
 - id: tools
   config:
-    # Keep the same temporary process-wide Code Mode opt-in as the Web surface.
+    # Keep the same temporary process-wide PTC mode opt-in as the Web surface.
     mode: !!js process.env.DSH_TOOLS_MODE
 
 - insert:
-    # Code Mode is a core execution capability, not a Web component.
+    # PTC mode is a core execution capability, not a Web component.
     - id: code-runtime
       name: '@deepseek-ai/dsh-code-runtime-worker-thread'
 

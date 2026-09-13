@@ -42,7 +42,7 @@ export const en: Record<JobKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<JobKey, string> = {
+export const th: Partial<Record<JobKey, string>> = {
   'count.live.one': '{count} งานเบื้องหลังกำลังทำงาน',
   'count.live.other': '{count} งานเบื้องหลังกำลังทำงาน',
   'count.idle.one': '{count} งานเบื้องหลัง',

@@ -2,7 +2,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -32,25 +32,44 @@ async function bench(isLoopback = true) {
   locale.setLocale('zh')
   ctx.provide('locale', locale)
   const settingsDescribe = vi.fn(() => Promise.resolve({
-    rpcId: 'settings-general' as never,
-    result: {
-      ok: true as const,
-      value: {
-        writable: true,
-        hasDocument: true,
-        namespaces: [],
-      },
+    ok: true as const,
+    value: {
+      writable: true,
+      hasDocument: true,
+      namespaces: [],
     },
   }))
   const settingsOpenDocument = vi.fn(() => Promise.resolve({
-    rpcId: 'settings-open' as never,
-    result: { ok: true as const, value: { opened: true as const } },
+    ok: true as const, value: { opened: true as const },
   }))
+  const remote = new TestRemote(ctx, {
+    settings: { describe: settingsDescribe, openSettingsDocument: settingsOpenDocument },
+    appUpdate: {
+      info: () => Promise.resolve({
+        ok: true as const, value: { version: '0.1.5-rc.2', appRoot: '/checkout' },
+      }),
+      check: () => Promise.resolve({
+        ok: true as const,
+        value: { currentVersion: '0.1.5-rc.2', latestVersion: '0.1.5-rc.2', updateAvailable: false },
+      }),
+      apply: () => Promise.resolve({ ok: true as const, value: { appliedVersion: '0.1.5-rc.3' } }),
+    },
+    mcp: {
+      listServers: () => Promise.resolve({
+        ok: true as const, value: { servers: [], filePath: '/home/u/.dsh/cordis.patch.yml' },
+      }),
+      status: () => Promise.resolve({ ok: true as const, value: { statuses: [] } }),
+      upsertServer: () => Promise.resolve({ ok: true as const, value: { servers: [] } }),
+      removeServer: () => Promise.resolve({ ok: true as const, value: { servers: [] } }),
+      importSecret: (name: string) => Promise.resolve({ ok: true as const, value: { name } }),
+    },
+  })
+  // The fixed Host facts the shell reads its loopback-only action from.
+  remote.$host = { home: undefined, isLoopback }
   ctx.provide('connection', {
-    api: { settings: { describe: settingsDescribe, openDocument: settingsOpenDocument } },
-    isLoopback,
+    state: { getSnapshot: () => 'connected', subscribe: () => () => {} },
+    reconnect: () => {},
   } as never)
-  new TestRemote(ctx)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, settingsDescribe, settingsOpenDocument }
 }
@@ -79,7 +98,10 @@ function generalEntry(slots: SlotRegistry) {
 
 describe('ui-settings-general apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'settingsScope'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'remote.mcp',
+      'settingsScope',
+    ])
   })
 
   it('fills all five seats for declarations before or after apply', async () => {
@@ -114,27 +136,43 @@ describe('ui-settings-general apply', () => {
     for (const [name, component] of SEATS) {
       expect(after.slots.entries(name)[0]!.component).toBe(component)
       // The self-inflicted ledger notifications hit the duplicate guard.
-      // settings.section hosts three owners: General, About, and MCP.
+      // settings.section hosts the General and About owners; MCP stays parked.
       expect(after.slots.entries(name)).toHaveLength(name === 'settings.section' ? 3 : 1)
     }
+    const aboutEntry = after.slots.entries('settings.section').find(e => e.options.id === 'about')!
+    expect(aboutEntry.options).toMatchObject({ id: 'about', order: 10 })
+    expect(resolveSlotLabel(aboutEntry.options.label)).toBe('关于')
+    const mcpEntry = after.slots.entries('settings.section').find(e => e.options.id === 'mcp')!
+    expect(mcpEntry.options).toMatchObject({ id: 'mcp', order: 20 })
+    expect(resolveSlotLabel(mcpEntry.options.label)).toBe('MCP')
     await vi.waitFor(() => {
       expect(after.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     })
   })
 
-  it('registers the zh/en settings dictionaries and frees the seats on teardown', async () => {
+  it('registers the zh/en/th settings dictionaries and frees the seats on teardown', async () => {
     const b = await bench()
     declare(b.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(b.locale.bind('settings')('title')).toBe('设置')
+    expect(b.locale.bind('settings')('connection.error')).toBe('连接异常')
+    expect(b.locale.bind('settings')('connection.connecting')).toBe('自动重连中')
+    expect(b.locale.bind('settings')('connection.connected')).toBe('连接成功')
     b.locale.setLocale('en')
     expect(b.locale.bind('settings')('close')).toBe('Close')
+    expect(b.locale.bind('settings')('connection.reconnect')).toBe('Disconnected, reconnect now')
+    expect(b.locale.bind('settings')('connection.connecting')).toBe('Reconnecting')
+    b.locale.setLocale('zh')
+    b.locale.setLocale('th')
+    expect(b.locale.bind('settings')('about.nav')).toBe('เกี่ยวกับแอป')
+    expect(b.locale.bind('settings')('general.nav')).toBe('ทั่วไป')
     b.locale.setLocale('zh')
     await fiber.dispose()
     // The (ns, locale) seats are free again — the dictionary disposer ran.
     expect(() => b.locale.register('settings', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings', 'en', {})).not.toThrow()
+    expect(() => b.locale.register('settings', 'th', {})).not.toThrow()
   })
 
   it('the nav label thunk follows the active locale without re-registration', async () => {
@@ -169,7 +207,7 @@ describe('ui-settings-general apply', () => {
     await vi.waitFor(() => { expect(b.settingsDescribe).toHaveBeenCalledTimes(2) })
   })
 
-  it('withholds the loopback-only document action off-loopback', async () => {
+  it('withholds the Host document action off-loopback', async () => {
     const b = await bench(false)
     declare(b.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })

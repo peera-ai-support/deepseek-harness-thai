@@ -6,7 +6,7 @@ English | [中文](2026-09-12-deepseek-model-image-modality-toggle.zh.md)
 
 ## Problem
 
-The direct DeepSeek adapter's catalog editor (`DeepSeekModelsEditor`) edited id, display name, context window, and output cap. A DeepSeek endpoint that accepts images had no way to say so from that editor, even though its rows carry the same modality list the [pi-ai route default](../architecture/2026-08-12-pi-ai-route-default-input-modalities.md) established (`inputModalities`, or the OpenAI-style `input`) and the settings-models page already offered the equivalent checkbox for a pi-ai provider profile (`ModelListEditor`).
+The direct DeepSeek adapter's catalog editor (`DeepSeekModelsEditor`) edited id, display name, context window, and output cap. A DeepSeek endpoint that accepts images had no way to say so from that editor, even though its rows carry the same modality list the [pi-ai route default](../../archived/architecture/2026-08-12-pi-ai-route-default-input-modalities.md) established (`inputModalities`, or the OpenAI-style `input`) and the settings-models page already offered the equivalent checkbox for a pi-ai provider profile (`ModelListEditor`).
 
 ## Decision
 

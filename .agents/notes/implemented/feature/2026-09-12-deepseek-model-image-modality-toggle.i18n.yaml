@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-12-deepseek-model-image-modality-toggle.md
-2026-09-12-deepseek-model-image-modality-toggle.md: cdb127fa6c80a3169206380b38e65e3e32e7b486
-2026-09-12-deepseek-model-image-modality-toggle.zh.md: 58b6e1161d91836fbb8a5fb32b5ee2bdb8cb3589
+2026-09-12-deepseek-model-image-modality-toggle.md: 240667ba7e89f98d94904f5c687daadf9fbddd58
+2026-09-12-deepseek-model-image-modality-toggle.zh.md: 1454246933418390353077e2c5308f3bbda26cf4

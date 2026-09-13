@@ -1,7 +1,8 @@
 /** Settings shell registration: slot declaration injection, the ledger projections, and HMR recovery. */
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject } from '../src/client/index.ts'
 import type { SettingsRootInjected } from '../src/client/shell-contract.ts'
@@ -18,13 +19,43 @@ async function bench() {
     getSnapshot: () => ({ active: 'zh', locales: [], revision: 0 }),
     subscribe: () => () => {},
   } as never)
-  ctx.provide('connection', {
-    api: { settings: { describe: async () => ({ result: { ok: false } }) } },
-    isLoopback: false,
+  // The shell mounts ui-settings, which injects `remote.settings`; without the
+  // namespace provided its fiber parks and no slot is ever declared.
+  const settings = {
+    describe: async () => ({ ok: false, error: new RemoteError('gateway/internal', 'no settings', {}) }),
+  }
+  // The About section's namespace: the fiber injects `remote.appUpdate`, so the
+  // shell only activates when it is provided.
+  const appUpdate = {
+    info: async () => ({ ok: true as const, value: { version: '0.1.5-rc.2', appRoot: '/checkout' } }),
+  }
+  const mcp = {
+    listServers: async () => ({
+      ok: true as const, value: { servers: [], filePath: '/home/u/.dsh/cordis.patch.yml' },
+    }),
+    status: async () => ({ ok: true as const, value: { statuses: [] } }),
+    upsertServer: async () => ({ ok: true as const, value: { servers: [] } }),
+    removeServer: async () => ({ ok: true as const, value: { servers: [] } }),
+    importSecret: async (name: string) => ({ ok: true as const, value: { name } }),
+  }
+  const reconnect = vi.fn()
+  const connectionState = {
+    getSnapshot: () => 'connected' as const,
+    subscribe: () => () => {},
+  }
+  ctx.provide('connection', { state: connectionState, reconnect } as never)
+  ctx.provide('remote', {
+    $on: () => () => {},
+    $host: { home: undefined, isLoopback: false },
+    settings,
+    appUpdate,
+    mcp,
   } as never)
-  ctx.provide('remote', { $on: () => () => {} } as never)
+  ctx.provide('remote.settings', settings as never)
+  ctx.provide('remote.appUpdate', appUpdate as never)
+  ctx.provide('remote.mcp', mcp as never)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
-  return { ctx, slots: ctx.get('slots') as SlotRegistry }
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, connectionState, reconnect }
 }
 
 function declare(slots: SlotRegistry): () => void {
@@ -51,7 +82,10 @@ const CHILD_SPECS = {
 
 describe('ui-settings apply', () => {
   it('declares only the slot registry (a pure composition face, no locale)', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'settingsScope'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'remote.mcp',
+      'settingsScope',
+    ])
   })
 
   it('registers the shell and declares every child slot, before or after the declaration', async () => {
@@ -78,12 +112,12 @@ describe('ui-settings apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const { sections } = injectedOf(b.slots).hooks
-    // This package registers the General, About, and MCP sections itself;
-    // every other section arrives from a feature registrant.
+    // This package registers the General, About, and MCP sections itself; every
+    // other section arrives from a feature registrant.
     const GENERAL = { id: 'general', order: 0, label: 'general.nav' }
+    const ABOUT = { id: 'about', order: 10, label: 'about.nav' }
     const MCP = { id: 'mcp', order: 20, label: 'mcp.nav' }
-    const ABOUT = { id: 'about', order: 200, label: 'about.nav' }
-    expect(sections.getSnapshot()).toEqual([GENERAL, MCP, ABOUT])
+    expect(sections.getSnapshot()).toEqual([GENERAL, ABOUT, MCP])
     b.slots.register({ name: 'settings.section', id: 'z', order: 20, label: 'Z' } as never, () => null)
     // No order and no label: both projection defaults apply.
     b.slots.register({ name: 'settings.section', id: 'a' } as never, () => null)
@@ -91,9 +125,9 @@ describe('ui-settings apply', () => {
     expect(rows).toEqual([
       GENERAL,
       { id: 'a', order: 0, label: '' },
+      ABOUT,
       MCP,
       { id: 'z', order: 20, label: 'Z' },
-      ABOUT,
     ])
     // Snapshot identity is stable until the ledger moves (uSES contract).
     expect(sections.getSnapshot()).toBe(rows)
@@ -104,6 +138,16 @@ describe('ui-settings apply', () => {
     expect(listener).toHaveBeenCalled()
     expect(sections.getSnapshot()).not.toBe(rows)
     off()
+  })
+
+  it('projects the Gateway connection control without copying its state', async () => {
+    const b = await bench()
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    const injected = injectedOf(b.slots)
+    expect(injected.hooks.connectionState).toBe(b.connectionState)
+    injected.reconnect()
+    expect(b.reconnect).toHaveBeenCalledOnce()
   })
 
   it('projects onboarding entries into stable coordinator order', async () => {

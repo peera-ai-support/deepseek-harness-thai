@@ -1,10 +1,12 @@
 /**
  * Child-process entry for the Win32 folder dialog: blocks THIS process
  * inside the modal `Show` so the host event loop stays live, reporting over
- * the IPC channel. Spawned as a child process (not a worker thread) so COM
- * `Show` can block this process without stalling the host. The bindings
- * steal foreground onto this thread so the chooser can appear above the GUI
- * process that received the click. Protocol: `{kind:'showing',threadId}` right
+ * the IPC channel. Spawned as a child process (not a worker thread) so a
+ * native fault stays contained and the modal call never wedges the host.
+ * A background host (the web GUI server) leaves this process without
+ * foreground rights, so `runFolderDialog` synthesizes an Alt press
+ * immediately before `Show` and the dialog then activates as foreground.
+ * Protocol: `{kind:'showing',threadId}` right
  * before the blocking call (the driver's abort lever needs the native
  * thread id), then exactly one of `{kind:'done',path}` or
  * `{kind:'error',message}`.

@@ -20,9 +20,15 @@ const t: McpSectionComponentProps['t'] = (key, params) => {
   })
 }
 
-// Global standard kit stubs: McpSection consumes neither hook.
+// Global standard kit stubs: McpSection consumes none of these hooks.
 const unusedHook = (() => { throw new Error('unused by mcp-section') }) as never
-const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
+const kit = {
+  useSessions: unusedHook,
+  useWorkspaces: unusedHook,
+  usePanelInfo: unusedHook,
+  useSessionPendingInteraction: unusedHook,
+  useResource: unusedHook,
+}
 
 function server(overrides: Partial<McpServerEntry> = {}): McpServerEntry {
   return {
@@ -41,11 +47,7 @@ function server(overrides: Partial<McpServerEntry> = {}): McpServerEntry {
   }
 }
 
-function okResponse<T>(value: T) {
-  return { result: { ok: true as const, value } }
-}
-
-function firstUpsert(mock: { upsertServer: { mock: { calls: Array<[{ server: McpServerEntry }]> } } }): { server: McpServerEntry } {
+function firstUpsert(mock: { upsertServer: { mock: { calls: Array<[McpServerEntry]> } } }): McpServerEntry {
   const call = mock.upsertServer.mock.calls[0]
   if (call === undefined) throw new Error('upsert not called')
   return call[0]
@@ -53,17 +55,17 @@ function firstUpsert(mock: { upsertServer: { mock: { calls: Array<[{ server: Mcp
 
 function mount(servers: McpServerEntry[], statuses: McpServerStatus[] = []) {
   const api = {
-    listServers: vi.fn(async () => okResponse({ servers, filePath: '/home/u/.dsh/cordis.patch.yml' })),
-    upsertServer: vi.fn(async (payload: { server: McpServerEntry }) => okResponse({
-      servers: [...servers.filter(s => s.id !== payload.server.id), payload.server],
+    listServers: vi.fn(async () => ({ ok: true as const, value: { servers, filePath: '/home/u/.dsh/cordis.patch.yml' } })),
+    upsertServer: vi.fn(async (server: McpServerEntry) => ({
+      ok: true as const,
+      value: { servers: [...servers.filter(s => s.id !== server.id), server] },
     })),
-    removeServer: vi.fn(async (payload: { id: string }) => okResponse({ servers: servers.filter(s => s.id !== payload.id) })),
-    status: vi.fn(async () => okResponse({ statuses })),
-    importSecret: vi.fn(async (payload: { name: string; value: string }) => okResponse({ name: payload.name })),
+    removeServer: vi.fn(async (id: string) => ({ ok: true as const, value: { servers: servers.filter(s => s.id !== id) } })),
+    status: vi.fn(async () => ({ ok: true as const, value: { statuses } })),
+    importSecret: vi.fn(async (name: string) => ({ ok: true as const, value: { name } })),
   }
-  const connection = { api: { mcp: api } } as unknown as McpSectionComponentProps['connection']
-  const view = render(<McpSection {...kit} connection={connection} t={t} close={vi.fn()} />)
-  return { api, connection, view }
+  const view = render(<McpSection {...kit} ops={api} t={t} close={vi.fn()} />)
+  return { api, view }
 }
 
 describe('McpSection', () => {
@@ -103,10 +105,10 @@ describe('McpSection', () => {
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
     const payload = firstUpsert(api)
-    expect(payload.server.serverName).toBe('github')
-    expect(payload.server.id).toBe('mcp-github')
-    expect(payload.server.transport).toBe('streamable-http')
-    expect(payload.server.url).toBe('https://api.githubcopilot.com/mcp/')
+    expect(payload.serverName).toBe('github')
+    expect(payload.id).toBe('mcp-github')
+    expect(payload.transport).toBe('streamable-http')
+    expect(payload.url).toBe('https://api.githubcopilot.com/mcp/')
     expect(await screen.findByText(/Saved/)).toBeTruthy()
   })
 
@@ -120,7 +122,7 @@ describe('McpSection', () => {
     })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const header = firstUpsert(api).server.headers[0]!
+    const header = firstUpsert(api).headers[0]!
     expect(header).toEqual({ name: 'Authorization', value: { kind: 'env', env: 'GITHUB_TOKEN', prefix: 'Bearer ' } })
   })
 
@@ -132,7 +134,7 @@ describe('McpSection', () => {
     fireEvent.change(screen.getByLabelText('Timeout (ms)'), { target: { value: '120000' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    expect(firstUpsert(api).server.toolCallTimeoutMs).toBe(120000)
+    expect(firstUpsert(api).toolCallTimeoutMs).toBe(120000)
   })
 
   it('saves a pasted full JSON config in JSON mode', async () => {
@@ -145,10 +147,10 @@ describe('McpSection', () => {
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
     const payload = firstUpsert(api)
-    expect(payload.server.id).toBe('mcp-j1')
-    expect(payload.server.serverName).toBe('j1')
-    expect(payload.server.command).toBe('echo')
-    expect(payload.server.args).toEqual(['a'])
+    expect(payload.id).toBe('mcp-j1')
+    expect(payload.serverName).toBe('j1')
+    expect(payload.command).toBe('echo')
+    expect(payload.args).toEqual(['a'])
   })
 
   it('rejects an invalid JSON mode config with a message', async () => {
@@ -173,12 +175,9 @@ describe('McpSection', () => {
     })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.importSecret).toHaveBeenCalledTimes(1) })
-    expect(api.importSecret).toHaveBeenCalledWith({
-      name: 'DSH_MCP_GITHUB_AUTHORIZATION',
-      value: 'Bearer ghp_im_a_real_token_123456',
-    })
+    expect(api.importSecret).toHaveBeenCalledWith('DSH_MCP_GITHUB_AUTHORIZATION', 'Bearer ghp_im_a_real_token_123456')
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const header = firstUpsert(api).server.headers[0]!
+    const header = firstUpsert(api).headers[0]!
     expect(header).toEqual({ name: 'Authorization', value: { kind: 'env', env: 'DSH_MCP_GITHUB_AUTHORIZATION' } })
     expect(await screen.findByText(/Moved out safely/)).toBeTruthy()
   })
@@ -194,7 +193,7 @@ describe('McpSection', () => {
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
     expect(api.importSecret).not.toHaveBeenCalled()
-    const header = firstUpsert(api).server.headers[0]!
+    const header = firstUpsert(api).headers[0]!
     expect(header).toEqual({ name: 'X-Mode', value: { kind: 'literal', value: 'quiet' } })
   })
 
@@ -205,12 +204,9 @@ describe('McpSection', () => {
     })
     fireEvent.click(screen.getAllByText('Install in one click')[0]!)
     await waitFor(() => { expect(api.importSecret).toHaveBeenCalledTimes(1) })
-    expect(api.importSecret).toHaveBeenCalledWith({
-      name: 'DSH_MCP_GITHUB_AUTHORIZATION',
-      value: 'Bearer ghp_paste_here_123456789012',
-    })
+    expect(api.importSecret).toHaveBeenCalledWith('DSH_MCP_GITHUB_AUTHORIZATION', 'Bearer ghp_paste_here_123456789012')
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const entry = firstUpsert(api).server
+    const entry = firstUpsert(api)
     expect(entry.id).toBe('mcp-github')
     expect(entry.url).toBe('https://api.githubcopilot.com/mcp/')
     expect(entry.headers).toEqual([
@@ -226,7 +222,7 @@ describe('McpSection', () => {
       .filter((button): button is HTMLButtonElement => button !== null && !button.disabled)
     fireEvent.click(installers[0]!)
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const entry = firstUpsert(api).server
+    const entry = firstUpsert(api)
     expect(entry.id).toBe('mcp-memory')
     expect(entry.command).toBe('npx')
     expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-memory'])
@@ -245,7 +241,7 @@ describe('McpSection', () => {
       .filter((button): button is HTMLButtonElement => button !== null && !button.disabled)
     fireEvent.click(installers[installers.length - 1]!)
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    const entry = firstUpsert(api).server
+    const entry = firstUpsert(api)
     expect(entry.id).toBe('mcp-filesystem')
     expect(entry.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', 'C:\Users\me\docs'])
   })
@@ -256,9 +252,9 @@ describe('McpSection', () => {
     fireEvent.change(screen.getByLabelText('Server name (serverName)'), { target: { value: 'gh2' } })
     fireEvent.click(screen.getByText('Save'))
     await waitFor(() => { expect(api.upsertServer).toHaveBeenCalledTimes(1) })
-    expect(firstUpsert(api).server.serverName).toBe('gh2')
+    expect(firstUpsert(api).serverName).toBe('gh2')
     fireEvent.click(screen.getByText('Remove'))
-    await waitFor(() => { expect(api.removeServer).toHaveBeenCalledWith({ id: 'mcp-github' }) })
+    await waitFor(() => { expect(api.removeServer).toHaveBeenCalledWith('mcp-github') })
   })
 
   it('tests connection and reports latency and tool count', async () => {
@@ -336,9 +332,7 @@ describe('McpSection', () => {
     fireEvent.click(toggle)
 
     await waitFor(() => {
-      expect(api.upsertServer).toHaveBeenCalledWith({
-        server: expect.objectContaining({ id: 'mcp-github', disabled: true }),
-      })
+      expect(api.upsertServer).toHaveBeenCalledWith(expect.objectContaining({ id: 'mcp-github', disabled: true }))
     })
   })
 

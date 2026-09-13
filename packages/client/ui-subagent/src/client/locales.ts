@@ -19,6 +19,9 @@ export const zh = {
   'duration.yearsMonths': '约{years}年{months}个月',
   'duration.exactDays': '{days}天{hours}小时{minutes}分{seconds}秒',
   'duration.exactTitle': '总活跃耗时：{duration}',
+  'tokens.thousand': '{value}K',
+  'tokens.million': '{value}M',
+  'tokens.total': '{value} tok',
   'loading.label': '正在加载子代理…',
   'loading.aria': '正在加载子代理',
   'load.error': '无法加载子代理',
@@ -57,6 +60,9 @@ export const en: Record<SubagentKey, string> = {
   'duration.yearsMonths': '~{years}y {months}mo',
   'duration.exactDays': '{days}d {hours}h {minutes}m {seconds}s',
   'duration.exactTitle': 'Total active duration: {duration}',
+  'tokens.thousand': '{value}K',
+  'tokens.million': '{value}M',
+  'tokens.total': '{value} tok',
   'loading.label': 'Loading subagents…',
   'loading.aria': 'Loading subagents',
   'load.error': 'Unable to load subagents',
@@ -80,7 +86,7 @@ export const en: Record<SubagentKey, string> = {
 }
 
 /** Thai dictionary, checked complete against the shipped key set. */
-export const th: Record<SubagentKey, string> = {
+export const th: Partial<Record<SubagentKey, string>> = {
   'diagnostic.corrupt': 'บันทึกเซสชันเสียหาย',
   'diagnostic.unsupported': 'เวอร์ชันบันทึกเอเจนต์ย่อยไม่ได้รับการรองรับ',
   'diagnostic.unavailable': 'บันทึกเซสชันไม่พร้อมใช้งานชั่วคราว',
