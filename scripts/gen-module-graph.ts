@@ -63,13 +63,13 @@ export function renderModuleGraph(pkgs: readonly Pkg[], locale: Locale): string 
     const rightIndex = GROUP_ORDER.indexOf(right)
     const normalizedLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex
     const normalizedRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex
-    return normalizedLeft - normalizedRight || left.localeCompare(right)
+    return normalizedLeft - normalizedRight || left.localeCompare(right, 'en')
   })
   const groupBlocks: string[] = []
   for (const group of groups) {
     groupBlocks.push(`  subgraph ${nodeId('group', group)}["packages/${escLabel(group)}"]`)
     for (const pkg of pkgs.filter(candidate => candidate.group === group)
-      .sort((left, right) => left.short.localeCompare(right.short))) {
+      .sort((left, right) => left.short.localeCompare(right.short, 'en'))) {
       groupBlocks.push(`    ${nodeId('pkg', pkg.short)}["${escLabel(pkg.short)}"]`)
     }
     groupBlocks.push('  end')

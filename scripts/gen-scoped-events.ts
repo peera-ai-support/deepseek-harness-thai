@@ -226,7 +226,7 @@ class ScopedEventGenerator {
       }
       visit(sourceFile)
     }
-    return resolvers.sort((left, right) => left.event.localeCompare(right.event))
+    return resolvers.sort((left, right) => left.event.localeCompare(right.event, 'en'))
   }
 
   /** Extract the Base type from one exact this: Scoped<Base> parameter. */

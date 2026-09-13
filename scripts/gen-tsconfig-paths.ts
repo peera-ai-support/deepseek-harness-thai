@@ -118,7 +118,7 @@ export function collectPackageAliases(): PackageAlias[] {
   }
   return [...bySpecifier.values()]
     .map(({ specifier, source, hasInvariant }) => ({ specifier, source, hasInvariant }))
-    .sort((left, right) => left.specifier.localeCompare(right.specifier))
+    .sort((left, right) => left.specifier.localeCompare(right.specifier, 'en'))
 }
 
 /**
@@ -134,7 +134,7 @@ export function collectPackageAliases(): PackageAlias[] {
 export function collectPackageNames(): string[] {
   return workspacePackages()
     .map(({ name }) => name)
-    .sort((left, right) => left.localeCompare(right))
+    .sort((left, right) => left.localeCompare(right, 'en'))
 }
 
 /**

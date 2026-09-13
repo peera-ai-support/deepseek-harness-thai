@@ -228,7 +228,7 @@ export function claudeDistributionFromManifest(
       name,
       version: requiredManifestString(version, `${name} optional dependency version`),
     }
-  }).sort((left, right) => left.name.localeCompare(right.name))
+  }).sort((left, right) => left.name.localeCompare(right.name, 'en'))
   return { sdkVersion, claudeCodeVersion, payloads }
 }
 
@@ -378,7 +378,7 @@ function normalizeRepo(raw: string | undefined): string | undefined {
 function collectNpmDeps(manifests: Map<string, Manifest>, names: Set<string>, browser: ReadonlySet<string>): ExternalDep[] {
   return [...tierExternalDeps(manifests, names, browser)]
     .filter(([name]) => !FIRST_PARTY.has(name))
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a.localeCompare(b, 'en'))
     .map(([name, runtime]) => ({ name, ...installedMetadata(name, manifests), runtime }))
 }
 
@@ -578,7 +578,7 @@ export function collectPythonDependencies(
   const found = new Set(parsed
     .flatMap(({ requirements }) => requirements.map(normalizePythonDistributionName))
     .filter(name => !firstParty.has(name)))
-  return [...found].sort((a, b) => a.localeCompare(b)).map((name) => {
+  return [...found].sort((a, b) => a.localeCompare(b, 'en')).map((name) => {
     const entry = metadata[name]
     if (entry === undefined) throw new Error(`gen-third-party-notices: python dependency ${name} is missing from PYTHON_METADATA.`)
     return { name, ...entry }

@@ -173,7 +173,7 @@ export interface ClientBuildRecord {
 function clientBuildEnvironment(environment: NodeJS.ProcessEnv): ClientBuildEnvironment {
   return Object.fromEntries(Object.entries(environment)
     .filter(([name, value]) => name.startsWith(CLIENT_BUILD_ENV_PREFIX) && value !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right))) as Record<string, string>
+    .sort(([left], [right]) => left.localeCompare(right, 'en'))) as Record<string, string>
 }
 
 /**
@@ -239,9 +239,9 @@ export function assertClientBuildEnvironment(
 ): void {
   const actual = Object.fromEntries(Object.entries(environment)
     .filter(([name, value]) => name.startsWith(CLIENT_BUILD_ENV_PREFIX) && value !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right)))
+    .sort(([left], [right]) => left.localeCompare(right, 'en')))
   const normalizedExpected = Object.fromEntries(Object.entries(expected)
-    .sort(([left], [right]) => left.localeCompare(right)))
+    .sort(([left], [right]) => left.localeCompare(right, 'en')))
   if (JSON.stringify(actual) === JSON.stringify(normalizedExpected)) return
 
   const names = [...new Set([...Object.keys(actual), ...Object.keys(normalizedExpected)])].sort()
@@ -358,7 +358,7 @@ function parseClientBuildRecord(value: unknown): ClientBuildRecord {
     throw new Error(`client build record ${CLIENT_BUILD_RECORD_PATH} has an invalid environment`)
   }
   const environment: Record<string, string> = {}
-  for (const [name, entry] of Object.entries(value.environment).sort(([left], [right]) => left.localeCompare(right))) {
+  for (const [name, entry] of Object.entries(value.environment).sort(([left], [right]) => left.localeCompare(right, 'en'))) {
     if (!name.startsWith(CLIENT_BUILD_ENV_PREFIX) || typeof entry !== 'string') {
       throw new Error(`client build record ${CLIENT_BUILD_RECORD_PATH} has an invalid environment entry ${name}`)
     }

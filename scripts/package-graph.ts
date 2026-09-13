@@ -154,7 +154,7 @@ function comparePackages(a: PackageGraphNode, b: PackageGraphNode, groupOrder: r
   const groupB = groupOrder.indexOf(b.group)
   const normA = groupA === -1 ? Number.MAX_SAFE_INTEGER : groupA
   const normB = groupB === -1 ? Number.MAX_SAFE_INTEGER : groupB
-  return normA - normB || a.group.localeCompare(b.group) || a.short.localeCompare(b.short)
+  return normA - normB || a.group.localeCompare(b.group, 'en') || a.short.localeCompare(b.short, 'en')
 }
 
 /** Stable Mermaid id for a graph value. */

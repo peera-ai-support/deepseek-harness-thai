@@ -384,7 +384,7 @@ export function render(events: AnnotatedLogEventEntry[], envelopeTypes: EventEnv
   const scopes = [...new Set(events.map(e => e.scope))].sort()
   for (const scope of scopes) {
     lines.push(`### \`${scope}/*\``, '')
-    for (const e of events.filter(x => x.scope === scope).sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const e of events.filter(x => x.scope === scope).sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
       lines.push(...renderEvent(e))
     }
   }

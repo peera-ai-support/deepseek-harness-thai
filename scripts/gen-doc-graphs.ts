@@ -1258,7 +1258,7 @@ export function collectPackageSources(project: TypeScriptProject): PackageSource
     const rel = project.relativePath(sourceFile)
     const match = /^packages\/[^/]+\/([^/]+)\/src\/.+\.ts$/.exec(rel)
     return match?.[1] ? [{ rel, pkg: match[1], sourceFile }] : []
-  }).sort((left, right) => left.rel.localeCompare(right.rel))
+  }).sort((left, right) => left.rel.localeCompare(right.rel, 'en'))
 }
 
 function collectEventRelations(): Map<string, EventRelation> {
@@ -1269,7 +1269,7 @@ function collectEventRelations(): Map<string, EventRelation> {
 function relationPackages(map: Map<string, Set<string>>, pkgsByShort: Map<string, Pkg>): string {
   if (map.size === 0) return '-'
   return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a.localeCompare(b, 'en'))
     .map(([pkg, methods]) => `${pkgLink(pkgsByShort.get(pkg), pkg)} (${[...methods].sort().map(m => `\`${m}\``).join(', ')})`)
     .join(', ')
 }
@@ -1290,7 +1290,7 @@ function renderEventRelations(pkgs: Pkg[], events: readonly EventEntry[]): strin
     '| Event | Mode | Declared in | Dispatchers | Listeners |',
     '| --- | --- | --- | --- | --- |',
   )
-  for (const event of [...events].sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const event of [...events].sort((a, b) => a.name.localeCompare(b.name, 'en'))) {
     const relation = relations.get(event.name) ?? { dispatchers: new Map<string, Set<string>>(), listeners: new Set<string>() }
     lines.push(`| \`${event.name}\` | \`${event.mode}\` | ${sourceLink(event.source)} | ${relationPackages(relation.dispatchers, pkgsByShort)} | ${listenerPackages(relation.listeners, pkgsByShort)} |`)
   }

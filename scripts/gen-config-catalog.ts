@@ -714,7 +714,7 @@ export function collectConfigCatalog(scanRoot: string = root): CatalogEntry[] {
       }
     }
     entry.pastes = pastes
-    entry.refs = [...refs.values()].sort((a, b) => a.alias.localeCompare(b.alias))
+    entry.refs = [...refs.values()].sort((a, b) => a.alias.localeCompare(b.alias, 'en'))
 
     // Statically walk the runtime schema (when one exists) for the subset check.
     const schemaExpr = findSchemaExpr(ctx, pluginClass)
@@ -764,7 +764,7 @@ export function collectConfigCatalog(scanRoot: string = root): CatalogEntry[] {
   }
 
   report(violations)
-  return entries.sort((a, b) => a.pkg.localeCompare(b.pkg))
+  return entries.sort((a, b) => a.pkg.localeCompare(b.pkg, 'en'))
 }
 
 /** Render the `Requires:` service-key line, or '' when the plugin injects nothing. */

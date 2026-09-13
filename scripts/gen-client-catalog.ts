@@ -245,7 +245,7 @@ export function resolveSlotEntries(
   }
   return declarations
     .map(declaration => entryOf(declaration, registrations, declaredBy.get(declaration.key), types, kits))
-    .sort((left, right) => left.key.localeCompare(right.key))
+    .sort((left, right) => left.key.localeCompare(right.key, 'en'))
 }
 
 /** The framework prop seats per scope, read from the merged standard-kit interfaces. */
