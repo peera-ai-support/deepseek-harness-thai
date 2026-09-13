@@ -6,11 +6,11 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 `@deepseek-ai/dsh-api-app-update-controller` 为 "关于" 界面提供生成的 `ctx.remote.appUpdate` 命名空间：已安装检出的版本与根目录、对远端默认分支上最新 release tag 的只读检查，以及一次应用——在該 tag 上分离工作树、安装依赖并构建。每个阶段都有自己的时间上限，每种拒绝都指明失败的阶段。
 
-## Table of Contents
+## 目录
 
 - [Use this package](#use-this-package)
 - [Configuration](#configuration)
@@ -21,7 +21,7 @@ kind: "package-reference"
 -----
 
 <a id="use-this-package"></a>
-## Use this package
+## 使用本包
 
 把本包作为 Loader 条目挂载到提供更新能力的 profile 中。"关于" 界面使用它。即使安装不是检出目录，该命名空间也会注册，因此 `check` 与 `apply` 会以 `update/not-a-checkout` 拒绝作答，告诉读者应改用哪种安装方式。本包不新增自己的更新路由：release tag 的含义由发布仓库决定，所有方法都读取该远端。
 
@@ -32,7 +32,7 @@ kind: "package-reference"
 -----
 
 <a id="configuration"></a>
-## Configuration
+## 配置
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -44,15 +44,15 @@ kind: "package-reference"
 -----
 
 <a id="model-experience"></a>
-## Model Experience
+## 模型体验
 
 None, as the updater is Host and browser state and registers no prompt, tool, or session event.
 
-#### KV Cache effect
+#### KV Cache 影响
 
 No direct effect; checking or applying a release does not alter model requests already in flight.
 
-## Known Limitations and Deferred Work
+## 已知限制与延期工作
 
 <a id="known-limitations-and-deferred-work"></a>
 
@@ -60,7 +60,7 @@ No direct effect; checking or applying a release does not alter model requests a
 - 应用 release 会重写工作树，因此运行中的应用必须在之后重启，而未提交的本地修改会在分离检出处丢失。
 
 <a id="dev-note"></a>
-### Dev Note
+### 开发备注
 
 <details>
 <summary>Working context for maintainers — click to expand</summary>

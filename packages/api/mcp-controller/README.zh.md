@@ -6,11 +6,11 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 `@deepseek-ai/dsh-api-mcp-controller` 为配置界面提供生成的 `ctx.remote.mcp` 命名空间：home 级用户补丁文件（`$DSH_HOME/cordis.patch.yml`）中的 mcp-client 行、已挂载实例发布的实时连接状态，以及一个用户作用域的密钥存储——用于那些绝不能写进文件的取值。只管理 `name` 为 mcp-client 插件的行；其他所有行与注释在重写时原样保留。
 
-## Table of Contents
+## 目录
 
 - [Use this package](#use-this-package)
 - [Configuration](#configuration)
@@ -21,7 +21,7 @@ kind: "package-reference"
 -----
 
 <a id="use-this-package"></a>
-## Use this package
+## 使用本包
 
 把本包作为 Loader 条目挂载到需要管理 MCP 服务器的设置界面所在的 profile 中。`listServers()` 报告受管理的行及其所在文件，且不丢信息：本编辑器无法解析的行依然会出现，而不会消失。`upsertServer(server)` 在校验身份模式、传输必填字段以及与其他行的唯一性之后，按 `id` 插入或替换一行；`removeServer(id)` 删除一行，id 不存在时是空操作。两次写入都经由临时文件加重命名，因为组合会从该文件热重载——半个写入会启动一棵损坏的树。
 
@@ -32,7 +32,7 @@ kind: "package-reference"
 -----
 
 <a id="configuration"></a>
-## Configuration
+## 配置
 
 | Field | Default | Meaning |
 |---|---|---|
@@ -43,15 +43,15 @@ kind: "package-reference"
 -----
 
 <a id="model-experience"></a>
-## Model Experience
+## 模型体验
 
 None, as the MCP configuration API is Host and browser state and registers no prompt, tool, or session event.
 
-#### KV Cache effect
+#### KV Cache 影响
 
 No direct effect; editing a row changes the composition, which the loader applies through its own reload path.
 
-## Known Limitations and Deferred Work
+## 已知限制与延期工作
 
 <a id="known-limitations-and-deferred-work"></a>
 
@@ -59,7 +59,7 @@ No direct effect; editing a row changes the composition, which the loader applie
 - 没有任何方法会返回已存储的密钥取值；编辑器只能看到它所引用的环境变量名。
 
 <a id="dev-note"></a>
-### Dev Note
+### 开发备注
 
 <details>
 <summary>Working context for maintainers — click to expand</summary>
