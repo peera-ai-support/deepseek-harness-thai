@@ -185,6 +185,21 @@ interface FaceProgramHost {
  */
 const defaultLibraryParses = new Map<string, ts.SourceFile | undefined>()
 
+/**
+ * Order two artifact keys for every model list a generator writes.
+ *
+ * `localeCompare` without a locale follows the runtime default, so a machine
+ * whose system locale is not English orders punctuation differently and every
+ * generated catalog then reports stale against the Linux CI run. Pinning the
+ * English collation keeps one machine's output byte-identical to another's.
+ * @param left - First key.
+ * @param right - Second key.
+ * @returns Negative, zero, or positive as `left` sorts before, with, or after `right`.
+ */
+export function compareArtifactKeys(left: string, right: string): number {
+  return left.localeCompare(right, 'en')
+}
+
 function defaultLibraryKey(fileName: string, languageVersionOrOptions: ts.ScriptTarget | ts.CreateSourceFileOptions): string {
   const options = typeof languageVersionOrOptions === 'object'
     ? languageVersionOrOptions
@@ -418,7 +433,7 @@ export class WorkspaceAnalyzer {
         root: value.root,
         faces: [...value.faces].sort(),
       }))
-      .sort((left, right) => left.package.localeCompare(right.package))
+      .sort((left, right) => compareArtifactKeys(left.package, right.package))
   }
 
   /**
@@ -468,8 +483,8 @@ export class WorkspaceAnalyzer {
     }
     return uniqueBy(declarations, declaration =>
       `${declaration.face}\0${declaration.location.file}\0${String(declaration.location.line)}\0${declaration.name}`)
-      .sort((left, right) => left.face.localeCompare(right.face)
-        || left.location.file.localeCompare(right.location.file)
+      .sort((left, right) => compareArtifactKeys(left.face, right.face)
+        || compareArtifactKeys(left.location.file, right.location.file)
         || left.location.line - right.location.line)
   }
 
@@ -516,7 +531,7 @@ export class WorkspaceAnalyzer {
     }
     const inventory = uniqueBy(registrations, registration => `${registration.face}\0${registration.name}`)
       .sort((left, right) =>
-        left.face.localeCompare(right.face) || left.name.localeCompare(right.name))
+        compareArtifactKeys(left.face, right.face) || compareArtifactKeys(left.name, right.name))
     this.caches.registrations.set(inventoryKey, inventory)
     return inventory
   }
@@ -662,8 +677,8 @@ class FaceAnalyzer {
       face: this.face,
       packages,
       graph: {
-        declarations: [...this.declarations.values()].sort((left, right) => left.id.localeCompare(right.id)),
-        nodes: [...this.nodes.values()].sort((left, right) => left.id.localeCompare(right.id)),
+        declarations: [...this.declarations.values()].sort((left, right) => compareArtifactKeys(left.id, right.id)),
+        nodes: [...this.nodes.values()].sort((left, right) => compareArtifactKeys(left.id, right.id)),
       },
     }
   }
@@ -729,14 +744,14 @@ class FaceAnalyzer {
       name: registration.name,
       root: slash(relative(this.root, registration.root)),
       exports: records.map(record => record.model)
-        .sort((left, right) => left.subpath.localeCompare(right.subpath) || left.name.localeCompare(right.name)),
+        .sort((left, right) => compareArtifactKeys(left.subpath, right.subpath) || compareArtifactKeys(left.name, right.name)),
       services: uniqueBy([...explicitServices, ...services], service => service.key)
-        .sort((left, right) => left.key.localeCompare(right.key)),
-      events: uniqueBy(events, event => event.name).sort((left, right) => left.name.localeCompare(right.name)),
-      objects: objects.sort((left, right) => left.export.name.localeCompare(right.export.name)),
-      schemas: schemas.sort((left, right) => left.export.name.localeCompare(right.export.name)),
+        .sort((left, right) => compareArtifactKeys(left.key, right.key)),
+      events: uniqueBy(events, event => event.name).sort((left, right) => compareArtifactKeys(left.name, right.name)),
+      objects: objects.sort((left, right) => compareArtifactKeys(left.export.name, right.export.name)),
+      schemas: schemas.sort((left, right) => compareArtifactKeys(left.export.name, right.export.name)),
       invocations: this.face === 'host'
-        ? this.collectInvocations(registration, reachable).sort((left, right) => left.id.localeCompare(right.id))
+        ? this.collectInvocations(registration, reachable).sort((left, right) => compareArtifactKeys(left.id, right.id))
         : [],
     }
   }
@@ -860,7 +875,7 @@ class FaceAnalyzer {
         queue.push(this.sourceFiles.get(resolvedPath) as ts.SourceFile)
       }
     }
-    return [...reachable.values()].sort((left, right) => left.fileName.localeCompare(right.fileName))
+    return [...reachable.values()].sort((left, right) => compareArtifactKeys(left.fileName, right.fileName))
   }
 
   private resolveImport(specifier: string, fromFile: string): string | undefined {
@@ -1523,7 +1538,7 @@ class FaceAnalyzer {
         acceptsUndefined,
         typeSymbol: `${imported.specifier}#${imported.name}`,
         imports: [...imports.values()].sort((left, right) =>
-          left.specifier.localeCompare(right.specifier) || left.name.localeCompare(right.name)),
+          compareArtifactKeys(left.specifier, right.specifier) || compareArtifactKeys(left.name, right.name)),
       }
     }
     if (requireNamed) this.fail(authoredType, 'lookup and Context wire types must be named public types')
@@ -1533,7 +1548,7 @@ class FaceAnalyzer {
       acceptsUndefined,
       typeSymbol: fallbackTypeSymbol,
       imports: [...imports.values()].sort((left, right) =>
-        left.specifier.localeCompare(right.specifier) || left.name.localeCompare(right.name)),
+        compareArtifactKeys(left.specifier, right.specifier) || compareArtifactKeys(left.name, right.name)),
     }
   }
 
@@ -1908,7 +1923,7 @@ class FaceAnalyzer {
       }
     }
     const selected = candidates.sort((left, right) =>
-      left.specifier.localeCompare(right.specifier) || left.name.localeCompare(right.name))[0]
+      compareArtifactKeys(left.specifier, right.specifier) || compareArtifactKeys(left.name, right.name))[0]
     if (selected === undefined) {
       this.fail(site, `Remote boundary type ${symbol.name} must be exported from a public non-root type subpath`)
     }
@@ -2687,10 +2702,10 @@ function mergeWorkspaceModels(models: readonly WorkspaceModel[]): WorkspaceModel
     faces: [...faces].sort(([left], [right]) =>
       (left === 'host' ? 0 : 1) - (right === 'host' ? 0 : 1)).map(([face, model]) => ({
       face,
-      packages: [...model.packages.values()].sort((left, right) => left.name.localeCompare(right.name)),
+      packages: [...model.packages.values()].sort((left, right) => compareArtifactKeys(left.name, right.name)),
       graph: {
-        declarations: [...model.declarations.values()].sort((left, right) => left.id.localeCompare(right.id)),
-        nodes: [...model.nodes.values()].sort((left, right) => left.id.localeCompare(right.id)),
+        declarations: [...model.declarations.values()].sort((left, right) => compareArtifactKeys(left.id, right.id)),
+        nodes: [...model.nodes.values()].sort((left, right) => compareArtifactKeys(left.id, right.id)),
       },
     })),
     crossFaceLinks: [...links.values()].sort(compareCrossFaceLinks),
@@ -2796,7 +2811,7 @@ function packageExportTargets(manifest: Record<string, unknown>): [string, strin
     const target = exportTarget(value)
     if (target !== undefined) result.push([subpath, target])
   }
-  return result.sort(([left], [right]) => left.localeCompare(right))
+  return result.sort(([left], [right]) => compareArtifactKeys(left, right))
 }
 
 function exportTarget(value: unknown): string | undefined {
@@ -3226,10 +3241,10 @@ function uniqueBy<T>(values: readonly T[], key: (value: T) => string): T[] {
 }
 
 function compareCrossFaceLinks(left: CrossFaceLink, right: CrossFaceLink): number {
-  return left.fromFace.localeCompare(right.fromFace)
-    || left.fromPackage.localeCompare(right.fromPackage)
-    || left.toFace.localeCompare(right.toFace)
-    || left.toPackage.localeCompare(right.toPackage)
-    || left.subpath.localeCompare(right.subpath)
-    || left.name.localeCompare(right.name)
+  return compareArtifactKeys(left.fromFace, right.fromFace)
+    || compareArtifactKeys(left.fromPackage, right.fromPackage)
+    || compareArtifactKeys(left.toFace, right.toFace)
+    || compareArtifactKeys(left.toPackage, right.toPackage)
+    || compareArtifactKeys(left.subpath, right.subpath)
+    || compareArtifactKeys(left.name, right.name)
 }
