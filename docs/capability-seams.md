@@ -46,6 +46,8 @@ flowchart LR
   svc_settingsController["ctx.settingsController<br/>Host settings-surface Remote controller"]
   pkg_api_app_update_controller["api-app-update-controller"]
   svc_appUpdate["ctx.appUpdate<br/>Host in-app-update Remote controller"]
+  pkg_api_mcp_controller["api-mcp-controller"]
+  svc_mcp["ctx.mcp<br/>Host MCP-configuration Remote controller"]
   pkg_api_workspace_files["api-workspace-files"]
   svc_workspaceFiles["ctx.workspaceFiles<br/>Host workspace file Remote service"]
   pkg_api_workspace_controller["api-workspace-controller"]
@@ -232,6 +234,7 @@ flowchart LR
   pkg_agent_presets --> svc_agentPresets
   pkg_api_app_update_controller --> svc_appUpdate
   pkg_api_gateway --> svc_typertGateway
+  pkg_api_mcp_controller --> svc_mcp
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
   pkg_api_session_controller --> svc_sessionSkillCatalog
@@ -490,6 +493,7 @@ flowchart LR
 | `ctx.credentialsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | Projects the credential-reference seam onto the generated Remote namespace: batch fan-out, view projection, and refusal mapping live here, not on the seam Definition. |
 | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | Projects the user-settings seam onto the generated Remote namespace: the read is always redacted and every refusal is classified here, not on the seam Definition. |
 | `ctx.appUpdate` | `core` | [`api-app-update-controller`](../packages/api/app-update-controller) | - | - | - | Owns the release check and the in-place apply over the installation checkout; every refusal names the stage that failed. |
+| `ctx.mcp` | `core` | [`api-mcp-controller`](../packages/api/mcp-controller) | - | - | - | Owns the mcp-client rows of the home patch file and reports the live connection status the mounted instances publish. |
 | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | Serves stat, paged text, byte windows, directory listings, and the change feed for files inside a Session's workspace root, confined by lstat, containment, and a stat re-check. |
 | `ctx.workspaceController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | Owns Workspace commands and reconnect-safe Workspace state delivery through the generated Remote namespace. |
 | `ctx.directoryPickerController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | Carries the picking seam onto the wire: capability gating, cancellation, and the seam-coded failures a browser directory flow discriminates on. |

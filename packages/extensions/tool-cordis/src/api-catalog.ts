@@ -1344,6 +1344,47 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'mcp',
+    summary: 'The MCP configuration and status Remote namespace.',
+    description: 'The MCP configuration and status Remote namespace. Listing and status are reads; upsert, remove, and importSecret write to the patch file or the user environment. The composition hot-reloads from the patch file, so a saved row applies live.',
+    methods: [
+      {
+        signature: '@Remote listServers(): McpServersFileValue',
+        description: 'List the managed rows of the home patch file. Reading is lossless: unreachable or malformed rows still surface.',
+        parameters: [],
+        returns: 'the managed rows and the patch file they live in.',
+        throws: ['RemoteError `mcp/unreadable` when the file cannot be read.'],
+      },
+      {
+        signature: '@Remote upsertServer(server: McpServerEntry): McpServersValue',
+        description: 'Insert or replace one managed row, matched by its `id`, and rewrite the patch file. Every other row and comment survives verbatim.',
+        parameters: [{ name: 'server', description: 'the row to store.' }],
+        returns: 'the managed rows after the write.',
+        throws: ['RemoteError `mcp/unreadable`, `mcp/rejected`, or `mcp/write-failed`.'],
+      },
+      {
+        signature: '@Remote removeServer(id: string): McpServersValue',
+        description: 'Remove the managed row with `id`; an absent id is a no-op.',
+        parameters: [{ name: 'id', description: 'patch row id to remove.' }],
+        returns: 'the managed rows after the write.',
+        throws: ['RemoteError `mcp/unreadable` or `mcp/write-failed`.'],
+      },
+      {
+        signature: '@Remote status(): McpStatusValue',
+        description: 'Live connection statuses reported by the mounted mcp-client instances.',
+        parameters: [],
+        returns: 'one status per mounted instance; a server with no live instance is absent.',
+      },
+      {
+        signature: '@Remote async importSecret(name: string, value: string): Promise<McpImportSecretValue>',
+        description: 'Store a pasted secret in the user-scope environment under `name`, so the caller can reference it from a row instead of writing the literal into the patch file. The value is visible to this user\'s processes only.',
+        parameters: [{ name: 'name', description: 'environment variable name, uppercase.' }, { name: 'value', description: 'secret text.' }],
+        returns: 'the name the row should reference.',
+        throws: ['RemoteError `mcp/rejected` for a malformed name or value, and `mcp/secret-write-failed` when the store refuses.'],
+      },
+    ],
+  },
+  {
     key: 'messageFeedback',
     summary: 'Session-log service; cold operations never construct a Session or Agent.',
     description: 'Session-log service; cold operations never construct a Session or Agent.',
@@ -4644,6 +4685,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ManualCompactAgentContext',
     declaration: 'export interface ManualCompactAgentContext extends CompactionAgentContext {\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}',
+  },
+  {
+    name: 'McpHeaderOrEnv',
+    declaration: 'export interface McpHeaderOrEnv {\n    name: string;\n    value: McpValue;\n}',
+  },
+  {
+    name: 'McpImportSecretValue',
+    declaration: 'export interface McpImportSecretValue {\n    name: string;\n}',
+  },
+  {
+    name: 'McpServerEntry',
+    declaration: 'export interface McpServerEntry {\n    id: string;\n    serverName: string;\n    transport: \'stdio\' | \'streamable-http\';\n    disabled?: boolean;\n    url?: string;\n    headers: McpHeaderOrEnv[];\n    command?: string;\n    args: string[];\n    cwd?: string;\n    env: McpHeaderOrEnv[];\n    toolCallTimeoutMs?: number;\n    extra: string[];\n}',
+  },
+  {
+    name: 'McpServersFileValue',
+    declaration: 'export interface McpServersFileValue extends McpServersValue {\n    filePath: string;\n}',
+  },
+  {
+    name: 'McpServersValue',
+    declaration: 'export interface McpServersValue {\n    servers: McpServerEntry[];\n}',
+  },
+  {
+    name: 'McpStatusValue',
+    declaration: 'export interface McpStatusValue {\n    statuses: McpServerStatus[];\n}',
+  },
+  {
+    name: 'McpValue',
+    declaration: 'export interface McpValue {\n    kind: \'literal\' | \'env\';\n    value?: string;\n    env?: string;\n    prefix?: string;\n    suffix?: string;\n}',
   },
   {
     name: 'Message',

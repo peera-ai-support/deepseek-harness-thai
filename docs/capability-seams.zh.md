@@ -48,6 +48,8 @@ flowchart LR
   svc_settingsController["ctx.settingsController<br/>Host settings-surface Remote controller"]
   pkg_api_app_update_controller["api-app-update-controller"]
   svc_appUpdate["ctx.appUpdate<br/>Host in-app-update Remote controller"]
+  pkg_api_mcp_controller["api-mcp-controller"]
+  svc_mcp["ctx.mcp<br/>Host MCP-configuration Remote controller"]
   pkg_api_workspace_files["api-workspace-files"]
   svc_workspaceFiles["ctx.workspaceFiles<br/>Host workspace file Remote service"]
   pkg_api_workspace_controller["api-workspace-controller"]
@@ -234,6 +236,7 @@ flowchart LR
   pkg_agent_presets --> svc_agentPresets
   pkg_api_app_update_controller --> svc_appUpdate
   pkg_api_gateway --> svc_typertGateway
+  pkg_api_mcp_controller --> svc_mcp
   pkg_api_session_controller --> svc_sessionController
   pkg_api_session_controller --> svc_sessionFileReferences
   pkg_api_session_controller --> svc_sessionSkillCatalog
@@ -492,6 +495,7 @@ flowchart LR
 | `ctx.credentialsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把凭据引用 seam 投影到生成的 Remote namespace：批量扇出、视图投影与拒绝映射都在这里，而不在 seam Definition 上。 |
 | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
 | `ctx.appUpdate` | `core` | [`api-app-update-controller`](../packages/api/app-update-controller) | - | - | - | 拥有对安装检出的 release 检查与就地应用；每一种拒绝都指明失败的阶段。 |
+| `ctx.mcp` | `core` | [`api-mcp-controller`](../packages/api/mcp-controller) | - | - | - | 拥有 home 补丁文件中的 mcp-client 行，并报告已挂载实例发布的实时连接状态。 |
 | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 | `ctx.workspaceController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | 通过生成的 Remote namespace 负责 Workspace 命令和可在重连后收敛的 Workspace 状态投递。 |
 | `ctx.directoryPickerController` | `core` | [`api-workspace-controller`](../packages/api/workspace-controller) | - | - | - | 把选目录 seam 送上线：能力门禁、取消传播，以及浏览器目录流程用于分支判断的 seam 错误码。 |

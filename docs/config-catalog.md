@@ -197,7 +197,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/api/app-update-controller/src/index.ts:46`](../packages/api/app-update-controller/src/index.ts)
+Source: [`packages/api/app-update-controller/src/index.ts:51`](../packages/api/app-update-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-gateway"></a>
 
@@ -214,6 +214,20 @@ export interface Config {
 ```
 
 Source: [`packages/api/gateway/src/index.ts:119`](../packages/api/gateway/src/index.ts)
+
+<a id="deepseek-aidsh-api-mcp-controller"></a>
+
+## `@deepseek-ai/dsh-api-mcp-controller`
+
+```ts config-catalog
+/** Deployment ceilings for the MCP controller. */
+export interface Config {
+  /** Ceiling for one user-scope secret write, in milliseconds. */
+  readonly secretWriteTimeoutMs?: number
+}
+```
+
+Source: [`packages/api/mcp-controller/src/index.ts:50`](../packages/api/mcp-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-session-controller"></a>
 
@@ -1592,7 +1606,7 @@ export interface ReconnectConfig {
 }
 ```
 
-Source: [`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.ts)
+Source: [`packages/mcp/mcp-client/src/index.ts:100`](../packages/mcp/mcp-client/src/index.ts)
 
 <a id="deepseek-aidsh-message-feedback"></a>
 

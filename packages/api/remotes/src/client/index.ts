@@ -5,6 +5,7 @@ import agentPresetsRemote from '@deepseek-ai/dsh-agent-presets/remote'
 import commandsRemote from '@deepseek-ai/dsh-commands/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
 import appUpdateRemote from '@deepseek-ai/dsh-api-app-update-controller/remote'
+import mcpRemote from '@deepseek-ai/dsh-api-mcp-controller/remote'
 import goalsRemote from '@deepseek-ai/dsh-goal/remote'
 import llmRemote from '@deepseek-ai/dsh-llm/remote'
 import dynamicRemote from '@deepseek-ai/dsh-cordis-host-runner/remote'
@@ -25,6 +26,8 @@ export type {} from '@deepseek-ai/dsh-agent-presets/remote'
 export type {} from '@deepseek-ai/dsh-commands/remote'
 export type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
 export type {} from '@deepseek-ai/dsh-api-app-update-controller/remote'
+export type {} from '@deepseek-ai/dsh-api-mcp-controller/remote'
+export type * from '@deepseek-ai/dsh-api-mcp-controller/types'
 export type {} from '@deepseek-ai/dsh-goal/remote'
 export type {} from '@deepseek-ai/dsh-llm/remote'
 export type {} from '@deepseek-ai/dsh-host-plugin-inventory/remote'
@@ -153,9 +156,9 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   const disposers: Array<() => Promise<void>> = []
   try {
     for (const contribution of [
-      agentPresetsRemote, commandsRemote, settingsControllerRemote, appUpdateRemote, goalsRemote, llmRemote,
-      dynamicRemote, pluginInventoryRemote, messageFeedbackRemote, sessionFeedbackRemote, fileUploadsRemote,
-      sessionReferencesRemote, subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote,
+      agentPresetsRemote, commandsRemote, settingsControllerRemote, appUpdateRemote, mcpRemote, goalsRemote,
+      llmRemote, dynamicRemote, pluginInventoryRemote, messageFeedbackRemote, sessionFeedbackRemote,
+      fileUploadsRemote, sessionReferencesRemote, subagentsRemote, sessionRemote, workspaceRemote, workspaceFilesRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

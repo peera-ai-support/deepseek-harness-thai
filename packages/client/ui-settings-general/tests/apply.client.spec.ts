@@ -54,6 +54,15 @@ async function bench(isLoopback = true) {
       }),
       apply: () => Promise.resolve({ ok: true as const, value: { appliedVersion: '0.1.5-rc.3' } }),
     },
+    mcp: {
+      listServers: () => Promise.resolve({
+        ok: true as const, value: { servers: [], filePath: '/home/u/.dsh/cordis.patch.yml' },
+      }),
+      status: () => Promise.resolve({ ok: true as const, value: { statuses: [] } }),
+      upsertServer: () => Promise.resolve({ ok: true as const, value: { servers: [] } }),
+      removeServer: () => Promise.resolve({ ok: true as const, value: { servers: [] } }),
+      importSecret: (name: string) => Promise.resolve({ ok: true as const, value: { name } }),
+    },
   })
   // The fixed Host facts the shell reads its loopback-only action from.
   remote.$host = { home: undefined, isLoopback }
@@ -90,7 +99,8 @@ function generalEntry(slots: SlotRegistry) {
 describe('ui-settings-general apply', () => {
   it('declares the services it uses', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'settingsScope',
+      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'remote.mcp',
+      'settingsScope',
     ])
   })
 
@@ -127,11 +137,14 @@ describe('ui-settings-general apply', () => {
       expect(after.slots.entries(name)[0]!.component).toBe(component)
       // The self-inflicted ledger notifications hit the duplicate guard.
       // settings.section hosts the General and About owners; MCP stays parked.
-      expect(after.slots.entries(name)).toHaveLength(name === 'settings.section' ? 2 : 1)
+      expect(after.slots.entries(name)).toHaveLength(name === 'settings.section' ? 3 : 1)
     }
     const aboutEntry = after.slots.entries('settings.section').find(e => e.options.id === 'about')!
     expect(aboutEntry.options).toMatchObject({ id: 'about', order: 10 })
     expect(resolveSlotLabel(aboutEntry.options.label)).toBe('关于')
+    const mcpEntry = after.slots.entries('settings.section').find(e => e.options.id === 'mcp')!
+    expect(mcpEntry.options).toMatchObject({ id: 'mcp', order: 20 })
+    expect(resolveSlotLabel(mcpEntry.options.label)).toBe('MCP')
     await vi.waitFor(() => {
       expect(after.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     })
@@ -172,7 +185,7 @@ describe('ui-settings-general apply', () => {
     // subscription), not re-registration.
     SEATS.forEach(([name], i) => {
       expect(b.slots.getVersion(name)).toBe(zhVersions[i]!)
-      expect(b.slots.entries(name)).toHaveLength(name === 'settings.section' ? 2 : 1)
+      expect(b.slots.entries(name)).toHaveLength(name === 'settings.section' ? 3 : 1)
     })
     expect(resolveSlotLabel(generalEntry(b.slots)!.options.label)).toBe('General')
     b.locale.setLocale('zh')

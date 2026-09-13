@@ -127,6 +127,11 @@
     - id: app-update-controller
       name: '@deepseek-ai/dsh-api-app-update-controller'
 
+    # MCP server rows of the home patch file plus the live connection status the
+    # mounted mcp-client instances publish, over Typert Remote.
+    - id: mcp-controller
+      name: '@deepseek-ai/dsh-api-mcp-controller'
+
     # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'

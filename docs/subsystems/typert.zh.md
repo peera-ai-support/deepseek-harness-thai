@@ -280,6 +280,59 @@ The in-app updater's Host Remote namespace. `info` and `check` never write to th
 
 Source: [`packages/api/app-update-controller/src/index.ts`](../../packages/api/app-update-controller/src/index.ts)
 
+<a id="ctxmcp--mcpcontroller"></a>
+
+### `ctx.mcp` — `McpController`
+
+The MCP configuration and status Remote namespace. Listing and status are reads; upsert, remove, and importSecret write to the patch file or the user environment. The composition hot-reloads from the patch file, so a saved row applies live.
+
+```ts cordis-catalog
+/**
+ * List the managed rows of the home patch file. Reading is lossless:
+ * unreachable or malformed rows still surface.
+ * @returns the managed rows and the patch file they live in.
+ * @throws RemoteError `mcp/unreadable` when the file cannot be read.
+ */
+@Remote listServers(): McpServersFileValue
+
+/**
+ * Insert or replace one managed row, matched by its `id`, and rewrite the
+ * patch file. Every other row and comment survives verbatim.
+ * @param server - the row to store.
+ * @returns the managed rows after the write.
+ * @throws RemoteError `mcp/unreadable`, `mcp/rejected`, or `mcp/write-failed`.
+ */
+@Remote upsertServer(server: McpServerEntry): McpServersValue
+
+/**
+ * Remove the managed row with `id`; an absent id is a no-op.
+ * @param id - patch row id to remove.
+ * @returns the managed rows after the write.
+ * @throws RemoteError `mcp/unreadable` or `mcp/write-failed`.
+ */
+@Remote removeServer(id: string): McpServersValue
+
+/**
+ * Live connection statuses reported by the mounted mcp-client instances.
+ * @returns one status per mounted instance; a server with no live instance is absent.
+ */
+@Remote status(): McpStatusValue
+
+/**
+ * Store a pasted secret in the user-scope environment under `name`, so the
+ * caller can reference it from a row instead of writing the literal into the
+ * patch file. The value is visible to this user's processes only.
+ * @param name - environment variable name, uppercase.
+ * @param value - secret text.
+ * @returns the name the row should reference.
+ * @throws RemoteError `mcp/rejected` for a malformed name or value, and
+ * `mcp/secret-write-failed` when the store refuses.
+ */
+@Remote async importSecret(name: string, value: string): Promise<McpImportSecretValue>
+```
+
+Source: [`packages/api/mcp-controller/src/index.ts`](../../packages/api/mcp-controller/src/index.ts)
+
 <a id="ctxtypert--typertregistry"></a>
 
 ### `ctx.typert` — `TypertRegistry`

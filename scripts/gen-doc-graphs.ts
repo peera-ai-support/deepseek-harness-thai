@@ -200,6 +200,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns the release check and the in-place apply over the installation checkout; every refusal names the stage that failed.',
   },
   {
+    key: 'mcp',
+    pkg: 'api-mcp-controller',
+    title: 'Host MCP-configuration Remote controller',
+    mode: 'core',
+    note: 'Owns the mcp-client rows of the home patch file and reports the live connection status the mounted instances publish.',
+  },
+  {
     key: 'workspaceFiles',
     pkg: 'api-workspace-files',
     title: 'Host workspace file Remote service',

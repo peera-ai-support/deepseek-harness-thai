@@ -29,6 +29,15 @@ async function bench() {
   const appUpdate = {
     info: async () => ({ ok: true as const, value: { version: '0.1.5-rc.2', appRoot: '/checkout' } }),
   }
+  const mcp = {
+    listServers: async () => ({
+      ok: true as const, value: { servers: [], filePath: '/home/u/.dsh/cordis.patch.yml' },
+    }),
+    status: async () => ({ ok: true as const, value: { statuses: [] } }),
+    upsertServer: async () => ({ ok: true as const, value: { servers: [] } }),
+    removeServer: async () => ({ ok: true as const, value: { servers: [] } }),
+    importSecret: async (name: string) => ({ ok: true as const, value: { name } }),
+  }
   const reconnect = vi.fn()
   const connectionState = {
     getSnapshot: () => 'connected' as const,
@@ -40,9 +49,11 @@ async function bench() {
     $host: { home: undefined, isLoopback: false },
     settings,
     appUpdate,
+    mcp,
   } as never)
   ctx.provide('remote.settings', settings as never)
   ctx.provide('remote.appUpdate', appUpdate as never)
+  ctx.provide('remote.mcp', mcp as never)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry, connectionState, reconnect }
 }
@@ -72,7 +83,8 @@ const CHILD_SPECS = {
 describe('ui-settings apply', () => {
   it('declares only the slot registry (a pure composition face, no locale)', () => {
     expect(inject).toEqual([
-      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'settingsScope',
+      'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'remote.mcp',
+      'settingsScope',
     ])
   })
 
@@ -100,12 +112,12 @@ describe('ui-settings apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const { sections } = injectedOf(b.slots).hooks
-    // This package registers the General and About sections itself; every other
-    // section arrives from a feature registrant. MCP stays parked with the
-    // host RPC port.
+    // This package registers the General, About, and MCP sections itself; every
+    // other section arrives from a feature registrant.
     const GENERAL = { id: 'general', order: 0, label: 'general.nav' }
     const ABOUT = { id: 'about', order: 10, label: 'about.nav' }
-    expect(sections.getSnapshot()).toEqual([GENERAL, ABOUT])
+    const MCP = { id: 'mcp', order: 20, label: 'mcp.nav' }
+    expect(sections.getSnapshot()).toEqual([GENERAL, ABOUT, MCP])
     b.slots.register({ name: 'settings.section', id: 'z', order: 20, label: 'Z' } as never, () => null)
     // No order and no label: both projection defaults apply.
     b.slots.register({ name: 'settings.section', id: 'a' } as never, () => null)
@@ -114,6 +126,7 @@ describe('ui-settings apply', () => {
       GENERAL,
       { id: 'a', order: 0, label: '' },
       ABOUT,
+      MCP,
       { id: 'z', order: 20, label: 'Z' },
     ])
     // Snapshot identity is stable until the ledger moves (uSES contract).

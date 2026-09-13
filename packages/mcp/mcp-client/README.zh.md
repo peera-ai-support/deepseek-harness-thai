@@ -125,6 +125,8 @@ kind: "package-reference"
 
 监督器监听 `notifications/tools/list_changed` 并排队一次重新同步；获取阶段失败时保留上一世代注册，注册冲突则回滚本次尝试的世代。每次中断共享一个尝试预算：连续失败达到 `maxAttempts` 次后工具被注销、重连停止；连接存活超过 `maxDelayMs` 会重置预算。
 
+监督器在根上下文上以 `ctx.mcpStatus`（`McpStatusStore`）发布每个实例的实时阶段：`connecting`；`connected` 并带上已发现的工具；`reconnecting` 并带上尝试次数、延迟与错误；以及重连关闭或尝试预算耗尽时的 `disabled`；dispose 会移除该条目。该存储在首次激活时创建、由应用内每个实例共享、且从不 dispose（释放），因此配置界面可以读取快照，而不必与客户端内部耦合。
+
 ### 工具执行内部细节
 
 工具调用会发送一次未缓存的 `tools/call` 请求，携带原始 MCP 名称、JSON 参数、中止信号与配置的超时；公开名称绝不会发给服务器，也绝不会被解析还原。规范成功值是 `{ content: JsonValue[], structuredContent? }`，为程序化调用方与 PTC mode 调用方保留完整的 MCP JSON 块。受支持且已声明的 `outputSchema` 会验证 `structuredContent`；不受支持的 schema 词汇回退为不受约束的 `JsonValue`。MCP 的 `isError` 结果会在任何图片持久化之前抛出，使注册表产生失败的工具结果。图片批次会先整体解码并校验，再保存任一成员；任何拒绝都会把每张图片投影为诊断文本。

@@ -29,6 +29,9 @@ import { GeneralSection } from './GeneralSection.tsx'
 import { AboutSection } from './AboutSection.tsx'
 import type { AboutSectionInjected } from './AboutSection.tsx'
 import { createAppUpdateOperations } from './about-operations.ts'
+import { McpSection } from './McpSection.tsx'
+import type { McpSectionInjected } from './McpSection.tsx'
+import { createMcpOperations } from './mcp-operations.ts'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
@@ -42,6 +45,8 @@ export type {
 } from './GeneralSection.tsx'
 export type { AboutSectionComponentProps, AboutSectionInjected } from './AboutSection.tsx'
 export type { AppUpdateCheckOutcome, AppUpdateInfo, AppUpdateOperations } from './about-operations.ts'
+export type { McpSectionComponentProps, McpSectionInjected } from './McpSection.tsx'
+export type { McpOperations, McpOutcome } from './mcp-operations.ts'
 export type { SettingsDocumentActionInjected, SettingsDocumentActionProps } from './SettingsDocumentAction.tsx'
 export type { SettingsDocumentState } from './settings-document-store.ts'
 export { SettingsDocumentStore } from './settings-document-store.ts'
@@ -63,7 +68,7 @@ const NS = 'settings'
  * constrained; registrations depend on their slots through `slots.inject()`.
  */
 export const inject = [
-  'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'settingsScope',
+  'slots', 'locale', 'connection', 'remote', 'remote.settings', 'remote.appUpdate', 'remote.mcp', 'settingsScope',
 ]
 
 /**
@@ -75,6 +80,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en, th }), 'ui-settings-general: dictionaries')
   const connection = ctx.get('connection') as ConnectionHandle
   const update = createAppUpdateOperations(ctx)
+  const mcp = createMcpOperations(ctx)
 
   // Copy freshness is framework-owned: components read the standard `t`
   // seat, and the nav label is a thunk the owner resolves per render — no
@@ -196,4 +202,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): AboutSectionInjected => ({ update }),
   }, AboutSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'mcp',
+    order: 20,
+    label: () => t('mcp.nav'),
+    locale: NS,
+    inject: (): McpSectionInjected => ({ ops: mcp }),
+  }, McpSection))
 }

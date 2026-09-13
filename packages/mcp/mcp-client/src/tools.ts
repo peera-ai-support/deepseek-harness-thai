@@ -25,6 +25,7 @@ import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepse
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+import type { McpServerToolInfo } from './status.ts'
 
 /** Resolved options relevant to tool bridging. */
 export interface ToolBridgeOptions {
@@ -138,6 +139,8 @@ export function publicToolName(serverName: string, rawName: string): string {
  * @param opts - Bridge options: server namespace and per-call timeout.
  * @param previous - Disposer map from the prior sync generation; disposed
  *   during the swap phase (only after the fetch phase succeeded).
+ * @param onToolsDiscovered - called with the tools this generation discovered,
+ *   before the registry swap.
  * @returns A map of registered public tool names to their unregister
  *   disposers — the exact set of live registrations owned by this server.
  */
@@ -146,9 +149,11 @@ export async function syncTools(
   ctx: Context,
   opts: ToolBridgeOptions,
   previous: ToolDisposers,
+  onToolsDiscovered?: (tools: McpServerToolInfo[]) => void,
 ): Promise<ToolDisposers> {
   // Phase 1: fetch and build the next generation without touching the registry.
   const definitions = new Map<string, ToolDefinition>()
+  const toolInfos: McpServerToolInfo[] = []
   const seenCursors = new Set<string>()
   let cursor: string | undefined
   do {
@@ -171,6 +176,11 @@ export async function syncTools(
         tool.execution?.taskSupport === 'required',
         opts,
       ))
+      toolInfos.push({
+        name: publicName,
+        rawName: tool.name,
+        ...tool.description !== undefined ? { description: tool.description } : {},
+      })
     }
     cursor = response.nextCursor
     if (cursor) {
@@ -190,12 +200,14 @@ export async function syncTools(
     for (const [publicName, definition] of definitions) {
       disposers.set(publicName, ctx.tools.register(definition))
     }
+    onToolsDiscovered?.(toolInfos)
   } catch (error) {
     // A conflict on an `mcp__<serverName>__`-qualified name means a foreign
     // registration occupies this server's namespace. Roll back so the model
     // sees either the full generation or none of it — never a partial set.
     for (const dispose of disposers.values()) dispose()
     ctx.logger.error(`mcp-client(${opts.serverName}): tool registration failed, no tools registered: ${String(error)}`)
+    onToolsDiscovered?.([])
     if (opts.registrationFailure === 'throw') throw error
     return new Map()
   }
